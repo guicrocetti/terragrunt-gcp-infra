@@ -1,0 +1,88 @@
+name: "Terragrunt GitHub Actions"
+environment: test
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  tg_version: "0.67.16"
+  tf_version: "1.9.7"
+  working_dir: "clusters"
+  TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
+  TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
+  TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+  WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: Check terragrunt HCL ${{ vars.PROJECT_ID }}
+        uses: gruntwork-io/terragrunt-action@v2
+        with:
+          tf_version: ${{ env.tf_version }}
+          tg_version: ${{ env.tg_version }}
+          tg_dir: ${{ env.working_dir }}
+          tg_command: "hclfmt --terragrunt-check --terragrunt-diff"
+
+  plan:
+    runs-on: ubuntu-latest
+    needs: [checks]
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+      - id: auth
+        name: Authenticate with Google Cloud
+        uses: "google-github-actions/auth@v2"
+        with:
+          create_credentials_file: true
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.SERVICE_ACCOUNT }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      - name: set credentials file
+        run: >-
+          gcloud auth login
+          --cred-file=${{steps.auth.outputs.credentials_file_path}}
+      - name: Use gcloud CLI
+        run: gcloud info
+
+
+      - name: Plan ${{ vars.PROJECT_ID }}
+        uses: gruntwork-io/terragrunt-action@v2
+        with:
+          tf_version: ${{ env.tf_version }}
+          tg_version: ${{ env.tg_version }}
+          tg_dir: ${{ env.working_dir }}
+          tg_command: "run-all plan --terragrunt-working-dir ${{ vars.PROJECT_ID }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: [ plan ]
+  #   environment: 'test'
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - name: 'Checkout'
+  #       uses: actions/checkout@v4
+
+  #     - name: Deploy
+  #       uses: gruntwork-io/terragrunt-action@v2
+  #       with:
+  #         tf_version: ${{ env.tf_version }}
+  #         tg_version: ${{ env.tg_version }}
+  #         tg_dir: ${{ env.working_dir }}
+  #         tg_command: "run-all apply --terragrunt-working-dir ${{ vars.PROJECT_ID }}"
+  #         tg_add_approve: true
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
