@@ -1,28 +1,40 @@
 name: "Terragrunt GitHub Actions"
-environment: test
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, test, feature/*, hotfix/*, dev/* ]
+  pull_request:
+    branches: [ main, test ]
 
 env:
   tg_version: "0.67.16"
   tf_version: "1.9.7"
   working_dir: "clusters"
-  TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
-  TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
-  TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
-  WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
 
 jobs:
+  determine_environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set_env.outputs.environment }}
+    steps:
+      - id: set_env
+        run: |
+          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ ${{ github.ref }} == 'refs/heads/test' ]]; then
+            echo "environment=test" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
   checks:
+    needs: determine_environment
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
 
-      - name: Check terragrunt HCL ${{ vars.PROJECT_ID }}
+      - name: Check terragrunt HCL
         uses: gruntwork-io/terragrunt-action@v2
         with:
           tf_version: ${{ env.tf_version }}
@@ -31,58 +43,89 @@ jobs:
           tg_command: "hclfmt --terragrunt-check --terragrunt-diff"
 
   plan:
+    needs: [determine_environment, checks]
     runs-on: ubuntu-latest
-    needs: [checks]
     permissions:
       id-token: write
       contents: read
+    environment: ${{ needs.determine_environment.outputs.environment }}
+    env:
+      TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
+      TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
+      TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+      WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
     steps:
+      - name: Set environment based on branch
+        run: |
+          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+            echo "git_environment=prod" >> $GITHUB_ENV
+          elif [[ ${{ github.ref }} == 'refs/heads/test' ]]; then
+            echo "git_environment=test" >> $GITHUB_ENV
+          else
+            echo "git_environment=dev" >> $GITHUB_ENV
+          fi
       - name: "Checkout"
         uses: actions/checkout@v4
       - id: auth
         name: Authenticate with Google Cloud
         uses: "google-github-actions/auth@v2"
         with:
-          create_credentials_file: true
           workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
           service_account: '${{ secrets.SERVICE_ACCOUNT }}'
-
+          project_id: '${{ vars.PROJECT_ID }}'
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
-      - name: set credentials file
-        run: >-
-          gcloud auth login
-          --cred-file=${{steps.auth.outputs.credentials_file_path}}
       - name: Use gcloud CLI
         run: gcloud info
-
-
-      - name: Plan ${{ vars.PROJECT_ID }}
-        uses: gruntwork-io/terragrunt-action@v2
+      - name: Setup Terragrunt
+        uses: eLco/setup-terragrunt@v1.0.3
         with:
-          tf_version: ${{ env.tf_version }}
-          tg_version: ${{ env.tg_version }}
-          tg_dir: ${{ env.working_dir }}
-          tg_command: "run-all plan --terragrunt-working-dir ${{ vars.PROJECT_ID }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          terragrunt_version: ${{ env.tg_version }}
+          github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      - name: Plan ${{ vars.PROJECT_ID }}
+        run: |
+          echo 'y' | terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }} 
+        
   # deploy:
+  #   needs: [ determine_environment, plan ]
   #   runs-on: ubuntu-latest
-  #   needs: [ plan ]
-  #   environment: 'test'
-  #   if: github.ref == 'refs/heads/main'
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   environment: ${{ needs.determine_environment.outputs.environment }}
+  #   env:
+  #     TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
+  #     TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
+  #     TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+  #     WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
   #   steps:
-  #     - name: 'Checkout'
+  #     - name: Set environment based on branch
+  #       run: |
+  #         if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+  #           echo "git_environment=prod" >> $GITHUB_ENV
+  #         elif [[ ${{ github.ref }} == 'refs/heads/test' ]]; then
+  #           echo "git_environment=test" >> $GITHUB_ENV
+  #         else
+  #           echo "git_environment=dev" >> $GITHUB_ENV
+  #         fi
+  #     - name: "Checkout"
   #       uses: actions/checkout@v4
-
-  #     - name: Deploy
-  #       uses: gruntwork-io/terragrunt-action@v2
+  #     - id: auth
+  #       name: Authenticate with Google Cloud
+  #       uses: "google-github-actions/auth@v2"
   #       with:
-  #         tf_version: ${{ env.tf_version }}
-  #         tg_version: ${{ env.tg_version }}
-  #         tg_dir: ${{ env.working_dir }}
-  #         tg_command: "run-all apply --terragrunt-working-dir ${{ vars.PROJECT_ID }}"
-  #         tg_add_approve: true
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+  #         service_account: '${{ secrets.SERVICE_ACCOUNT }}'
+  #         project_id: '${{ vars.PROJECT_ID }}'
+  #     - name: Set up Cloud SDK
+  #       uses: google-github-actions/setup-gcloud@v2
+  #     - name: Use gcloud CLI
+  #       run: gcloud info
+  #     - name: Setup Terragrunt
+  #       uses: eLco/setup-terragrunt@v1.0.3
+  #       with:
+  #         terragrunt_version: ${{ env.tg_version }}
+  #         github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+  #     - name: Apply ${{ vars.PROJECT_ID }} ENV=${{ env.git_environment }} 
+  #       run: |
+  #         echo 'y' | terragrunt run-all apply --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }} 
