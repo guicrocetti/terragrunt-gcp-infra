@@ -48,7 +48,6 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
-
       - name: Check terragrunt HCL
         uses: gruntwork-io/terragrunt-action@v2
         with:
@@ -73,9 +72,9 @@ jobs:
         name: Authenticate with Google Cloud
         uses: "google-github-actions/auth@v2"
         with:
-          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '${{ secrets.SERVICE_ACCOUNT }}'
-          project_id: '${{ vars.PROJECT_ID }}'
+          workload_identity_provider: "${{ env.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+          project_id: "${{ vars.PROJECT_ID }}"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
