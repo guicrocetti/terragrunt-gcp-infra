@@ -2,5 +2,8 @@
 # feed forward to the child modules.
 locals {
   cluster_name = basename(get_parent_terragrunt_dir())
-  environment  = regex("(?:.*-)?([^/-]+)$", local.cluster_name_full)
+  env          = regex("(?:.*-)?([^/-]+)$", local.cluster_name)[0]
+
+  version_config = read_terragrunt_config(find_in_parent_folders("versions.hcl"))
+  version        = local.version_config.locals.versions[local.env]
 }
