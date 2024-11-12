@@ -1,15 +1,33 @@
+# ENV
+
+```
+export PROJECT_ID=mind-devops-test
+export INFRA_REPOSITORY=secomind/terragrunt-infra-test
+export SERVICE_ACCOUNT_NAME=github-ci-terragrunt
+export WL_POOL_NAME=github-ci-terragrunt
+export WL_POOL_PROVIDER_NAME=github-ci-provider
+```
+
 # GCLOUD CONFIGS
 
 ## Set up workload identity pool
 
 ```
-gcloud iam workload-identity-pools create github-ci-terragrunt --location="global" --display-name="Github CI Terragrunt"
+gcloud iam workload-identity-pools create $WL_POOL_NAME --location="global" --display-name="Github CI Terragrunt"
 
-gcloud iam workload-identity-pools providers create-oidc github-ci-provider --location="global" --workload-identity-pool="github-ci-terragrunt" --issuer-uri="https://token.actions.githubusercontent.com" --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" --attribute-condition="assertion.repository=='<github_username>/<github_repository>'"
+gcloud iam workload-identity-pools providers create-oidc $WL_POOL_PROVIDER_NAME --location="global" --workload-identity-pool="$WL_POOL_NAME" --issuer-uri="https://token.actions.githubusercontent.com" --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" --attribute-condition="assertion.repository=='$INFRA_REPOSITORY'"
 
-gcloud iam service-accounts create github-ci-terragrunt \
+gcloud iam service-accounts create $SERVICE_ACCOUNT_NAME \
  --description="Github CI Terragrunt SA" \
  --display-name="Github CI Terragrunt"
+```
+
+## Get Values
+
+```
+WL_ID_POOL=$(gcloud iam workload-identity-pools list --location global --format 'json' | jq -r '.[-1].name')
+WL_ID_PROVIDER=$(gcloud iam workload-identity-pools providers list --workload-identity-pool=$WL_POOL_NAME  --location global --format 'json' | jq -r '.[-1] | .name')
+SA_EMAIL=$(gcloud iam service-accounts list --filter="Github CI Terragrunt" --format="get(email)")
 ```
 
 ## Permissions Needed:
@@ -44,15 +62,15 @@ Secrets and Variables must be configured for each environment.
 
 ### Secrets:
 
-WORKLOAD_IDENTITY_PROVIDER=projects/<PROJECT_ID_NUMBER>/locations/global/workloadIdentityPools/github-ci-terragrunt/providers/github-ci-provider
-SERVICE_ACCOUNT=<SA_NAME>@<PROJECT_ID>.iam.gserviceaccount.com
-CLOUDAMQP_APIKEY=<CLOUDAMQP_APIKEY>
-SCYLLA_TOKEN=<SCYLLA_TOKEN>
+- WORKLOAD_IDENTITY_PROVIDER=$WL_ID_PROVIDER
+- SERVICE_ACCOUNT=$SA_EMAIL
+- CLOUDAMQP_APIKEY=<CLOUDAMQP_APIKEY>
+- SCYLLA_TOKEN=<SCYLLA_TOKEN>
 
 ### Variables:
 
-PROJECT_ID=<PROJECT_ID>
-MODULES_URL=git::https://github.com/<user_name>/<repo_name>.git
+- PROJECT_ID=$PROJECT_ID
+- MODULES_URL=git::https://github.com/<user_name>/<repo_name>.git
 
 # SUMMARY:
 
