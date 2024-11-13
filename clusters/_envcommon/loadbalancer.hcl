@@ -21,5 +21,5 @@ locals {
 # environments.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  lb_name = "${local.env_vars.locals.cluster_name}-${local.region_var.locals.region}-lb"
+  lb_name = "${local.env_vars.locals.cluster_name}-${local.region_vars.locals.region}-lb"
 }
