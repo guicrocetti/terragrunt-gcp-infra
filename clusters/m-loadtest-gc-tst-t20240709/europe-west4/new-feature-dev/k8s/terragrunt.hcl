@@ -14,6 +14,7 @@ terraform {
 
 inputs = {
   # All configurations here will have precedence over the default
-  node_label = "terragrunt-ci-deployment"
-  node_count = 1
+  node_label      = "terragrunt-ci-deployment"
+  node_count      = 1
+  service_account = "cluster-teste-ci"
 }
