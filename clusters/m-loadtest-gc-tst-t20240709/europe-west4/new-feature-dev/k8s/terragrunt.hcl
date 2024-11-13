@@ -14,6 +14,6 @@ terraform {
 
 inputs = {
   # All configurations here will have precedence over the default
-  node_label = "${include.envcommon.locals.base_source_url}?ref=${include.envcommon.locals.version}"
+  node_label = "terragrunt-ci-deployment"
   node_count = 1
 }

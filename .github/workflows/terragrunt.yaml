@@ -3,10 +3,20 @@ name: "Terragrunt GitHub Actions"
 on:
   push:
     paths:
-      - clusters/**
+      - 'clusters/*'
+      - '!clusters/_envcommon/**'
+      - '!clusters/example/**'
   pull_request:
+    paths:
+      - 'clusters/*'
+      - '!clusters/_envcommon/**'
+      - '!clusters/example/**'
     branches: [ main, test, dev ]
   pull_request_target:
+    paths:
+      - 'clusters/*'
+      - '!clusters/_envcommon/**'
+      - '!clusters/example/**'
     types: [closed]
     branches: [ main, test, dev ]
 
