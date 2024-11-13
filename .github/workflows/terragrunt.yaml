@@ -1,9 +1,11 @@
 name: "Terragrunt GitHub Actions"
 
 on:
-  push:
-    paths:
-      - clusters/**
+  paths:
+    - 'clusters/*'
+  paths-ignore:
+    - 'clusters/_envcommon/**'
+    - 'clusters/example/**'
   pull_request:
     branches: [ main, test, dev ]
   pull_request_target:
