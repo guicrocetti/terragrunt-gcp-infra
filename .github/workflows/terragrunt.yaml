@@ -158,6 +158,17 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
     steps:
+      - name: Set environment based on branch
+        run: |
+          BRANCH=${{ github.base_ref }}
+          
+          if [[ $BRANCH == "main" ]]; then
+            echo "git_environment=prod" >> $GITHUB_ENV
+          elif [[ $BRANCH == "test" ]]; then
+            echo "git_environment=test" >> $GITHUB_ENV
+          else
+            echo "git_environment=dev" >> $GITHUB_ENV
+          fi
       - uses: actions/checkout@v4
       - id: check_destroy
         run: |
