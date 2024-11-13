@@ -20,6 +20,10 @@ env:
   tf_version: "1.9.7"
   working_dir: "clusters"
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   determine_environment:
     runs-on: ubuntu-latest
@@ -28,9 +32,15 @@ jobs:
     steps:
       - id: set_env
         run: |
-          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+          if [[ ${{ github.event_name }} == 'pull_request_target' ]]; then
+            BRANCH=${{ github.base_ref }}
+          else
+            BRANCH=${{ github.head_ref }}
+          fi
+
+          if [[ $BRANCH == "main" ]]; then
             echo "environment=prod" >> $GITHUB_OUTPUT
-          elif [[ ${{ github.ref }} == 'refs/heads/test' ]]; then
+          elif [[ $BRANCH == "test" ]]; then
             echo "environment=test" >> $GITHUB_OUTPUT
           else
             echo "environment=dev" >> $GITHUB_OUTPUT
@@ -54,9 +64,6 @@ jobs:
   plan:
     needs: [determine_environment, checks]
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     environment: ${{ needs.determine_environment.outputs.environment }}
     env:
       TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
@@ -66,13 +73,20 @@ jobs:
     steps:
       - name: Set environment based on branch
         run: |
-          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+          if [[ ${{ github.event_name }} == 'pull_request_target' ]]; then
+            BRANCH=${{ github.base_ref }}
+          else
+            BRANCH=${{ github.head_ref }}
+          fi
+
+          if [[ $BRANCH == "main" ]]; then
             echo "git_environment=prod" >> $GITHUB_ENV
-          elif [[ ${{ github.ref }} == 'refs/heads/test' ]]; then
+          elif [[ $BRANCH == "test" ]]; then
             echo "git_environment=test" >> $GITHUB_ENV
           else
             echo "git_environment=dev" >> $GITHUB_ENV
           fi
+
       - name: "Checkout"
         uses: actions/checkout@v4
       - id: auth
