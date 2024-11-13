@@ -154,7 +154,7 @@ jobs:
           echo 'y' | terragrunt run-all apply --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }}
 
   check_destroy:
-    needs: [determine_environment, check_destroy]
+    needs: [determine_environment]
     if: needs.check_destroy.outputs.destroy_flag == 'true' && github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
