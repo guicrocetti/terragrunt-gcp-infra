@@ -15,9 +15,16 @@ gcloud iam service-accounts create github-ci-terragrunt \
 ## Permissions Needed:
 
 ```
-gcloud projects add-iam-policy-binding <PROJECT_ID> --member="serviceAccount:github-ci-terragrunt@<PROJECT_ID>.iam.gserviceaccount.com" --role="roles/storage.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SA_EMAIL" --role="roles/storage.admin" ## Needed for terraform to create buckets
 
-gcloud projects add-iam-policy-binding <PROJECT_ID> --member="serviceAccount:github-ci-terragrunt@<PROJECT_ID>.iam.gserviceaccount.com" --role="roles/compute.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SA_EMAIL" --role="roles/compute.admin" ## Needed for terraform to create networks
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SA_EMAIL" --role="roles/container.admin" ## Needed for terraform to create clusters
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SA_EMAIL" --role="roles/iam.serviceAccountUser" ## Needed for terraform to create service accounts
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SA_EMAIL" --role="roles/secretmanager.admin" ## Needed for terraform to create secrets
+
 
 gcloud iam service-accounts add-iam-policy-binding github-ci-terragrunt@<PROJECT_ID>.iam.gserviceaccount.com --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/projects/147253475043/locations/global/workloadIdentityPools/github-ci-terragrunt/attribute.repository/<github_username>/<github_repository>"
 ```
