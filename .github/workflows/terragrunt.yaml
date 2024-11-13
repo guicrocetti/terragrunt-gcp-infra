@@ -153,16 +153,37 @@ jobs:
         run: |
           echo 'y' | terragrunt run-all apply --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }}
 
+  # check_destroy:
+  #   needs: [determine_environment]
+  #   runs-on: ubuntu-latest
+  #   environment: ${{ needs.determine_environment.outputs.environment }}
+  #   steps:
+  #     - name: Set environment based on branch
+  #       run: |
+  #         BRANCH=${{ github.base_ref }}
+          
+  #         if [[ $BRANCH == "main" ]]; then
+  #           echo "git_environment=prod" >> $GITHUB_ENV
+  #         elif [[ $BRANCH == "test" ]]; then
+  #           echo "git_environment=test" >> $GITHUB_ENV
+  #         else
+  #           echo "git_environment=dev" >> $GITHUB_ENV
+  #         fi
+  #     - uses: actions/checkout@v4
+  #     - id: check_destroy
+  #       run: |
+  #         DESTROY_FLAG=$(find ${{ env.working_dir }}/${{ vars.PROJECT_ID }} -name "*.tfvars" -exec grep -l "destroy = true" {} \;)
+  #         if [ ! -z "$DESTROY_FLAG" ]; then
+  #           echo "destroy=true" >> $GITHUB_OUTPUT
+  #         else
+  #           echo "destroy=false" >> $GITHUB_OUTPUT
+  #         fi
+
   check_destroy:
-    needs: [determine_environment]
-    if: needs.check_destroy.outputs.destroy_flag == 'true' && github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
+    needs: determine_environment
     runs-on: ubuntu-latest
-    environment: ${{ needs.determine_environment.outputs.environment }}
-    env:
-      TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
-      TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
-      TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
-      WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+    outputs:
+      destroy_flag: ${{ steps.check_destroy.outputs.destroy }}
     steps:
       - uses: actions/checkout@v4
       - id: check_destroy
