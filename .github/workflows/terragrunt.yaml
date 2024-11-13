@@ -1,8 +1,6 @@
 name: "Terragrunt GitHub Actions"
 
 on:
-  push:
-    branches: [ main, test, feature/*, hotfix/*, dev/* ]
   pull_request:
     paths:
       - 'clusters/**'
