@@ -63,6 +63,15 @@ jobs:
           # Get base and head SHAs
           BASE_SHA=${{ github.event.pull_request.base.sha }}
           HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          # Get list of all deleted terragrunt.hcl files
+          DELETED_FILES=$(git diff --diff-filter=D --name-only $BASE_SHA $HEAD_SHA | grep 'terragrunt.hcl' || true)
+
+          # If no files were deleted, return empty arrays
+          if [[ -z "$DELETED_FILES" ]]; then
+            echo "deleted_paths=$(jq -n '{projects:[],clusters:[],resources:[]}')" >> $GITHUB_OUTPUT
+            exit 0
+          fi
       
           # Function to check if a directory was deleted
           check_dir_deleted() {
