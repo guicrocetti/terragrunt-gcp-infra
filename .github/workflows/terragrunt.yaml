@@ -3,17 +3,17 @@ name: "Terragrunt GitHub Actions"
 on:
   pull_request:
     paths:
-      - 'clusters/**'
-      - '!clusters/_envcommon/**'
-      - '!clusters/example/**'
-    branches: [ main, test, dev ]
+      - "clusters/**"
+      - "!clusters/_envcommon/**"
+      - "!clusters/example/**"
+    branches: [main, test, dev]
   pull_request_target:
     paths:
-      - 'clusters/**'
-      - '!clusters/_envcommon/**'
-      - '!clusters/example/**'
+      - "clusters/**"
+      - "!clusters/_envcommon/**"
+      - "!clusters/example/**"
     types: [closed]
-    branches: [ main, test, dev ]
+    branches: [main, test, dev]
 
 env:
   tg_version: "0.67.16"
@@ -45,6 +45,237 @@ jobs:
           else
             echo "environment=dev" >> $GITHUB_OUTPUT
           fi
+          
+  detect_deletions:
+    needs: determine_environment
+    runs-on: ubuntu-latest
+    outputs:
+      deleted_paths: ${{ steps.find_deletions.outputs.deleted_paths }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find deleted directories
+        id: find_deletions
+        run: |
+          # Get base and head SHAs
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+      
+          # Function to check if a directory was deleted
+          check_dir_deleted() {
+            local dir=$1
+            # check if any files reamin in the directory
+            if git ls-tree -r --name-only $HEAD_SHA | grep -q "^$dir/"; then
+              return 1
+            else
+              return 0
+            fi
+          }
+      
+          # init arrays for each directory
+          declare -a deleted_projects=()
+          declare -a deleted_clusters=()
+          declare -a deleted_resources=()
+      
+          # Get list of all deleted terragrunt.hcl files
+          DELETED_FILES=$(git diff --diff-filter=D --name-only $BASE_SHA $HEAD_SHA | grep 'terragrunt.hcl')
+      
+          # for all terragrunt.hcl deleted files
+          while IFS= read -r file; do
+            if [[ -z "$file" ]]; then
+              continue
+            fi
+      
+            # Extract paths components
+            # Ex: clusters/project_1/region_1/cluster_X/k8s/terragrunt.hcl
+            PROJECT=$(echo "$file" | cut -d'/' -f2)
+            REGION=$(echo "$file" | cut -d'/' -f3)
+            CLUSTER=$(echo "$file" | cut -d'/' -f4)
+            RESOURCE=$(echo "$file" | cut -d'/' -f5)
+      
+            PROJECT_PATH="clusters/$PROJECT"
+            CLUSTER_PATH="$PROJECT_PATH/$REGION/$CLUSTER"
+            RESOURCE_PATH="$CLUSTER_PATH/$RESOURCE"
+      
+            # Check Project
+            if check_dir_deleted "$PROJECT_PATH" && [[ ! " ${deleted_projects[@]} " =~ " ${PROJECT_PATH} " ]]; then
+              deleted_projects+=("$PROJECT_PATH")
+              continue
+            fi
+      
+            # Check Cluster
+            if check_dir_deleted "$CLUSTER_PATH" && [[ ! " ${deleted_clusters[@]} " =~ " ${CLUSTER_PATH} " ]]; then
+              deleted_clusters+=("$CLUSTER_PATH")
+              continue
+            fi
+      
+            # Check Resources
+            if [[ ! " ${deleted_resources[@]} " =~ " ${RESOURCE_PATH} " ]]; then
+              deleted_resources+=("$RESOURCE_PATH")
+            fi
+      
+          done <<< "$DELETED_FILES"
+      
+          # Convert arrays to JSON
+          DELETED_PATHS_JSON=$(jq -n \
+            --arg projects "$(printf '%s\n' "${deleted_projects[@]}")" \
+            --arg clusters "$(printf '%s\n' "${deleted_clusters[@]}")" \
+            --arg resources "$(printf '%s\n' "${deleted_resources[@]}")" \
+            '{
+              projects: ($projects | split("\n") | map(select(length > 0))),
+              clusters: ($clusters | split("\n") | map(select(length > 0))),
+              resources: ($resources | split("\n") | map(select(length > 0)))
+            }')
+      
+          echo "deleted_paths=$DELETED_PATHS_JSON" >> $GITHUB_OUTPUT
+
+  plan_destroy:
+    needs: [determine_environment, detect_deletions]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.determine_environment.outputs.environment }}
+    env:
+      TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
+      TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
+      TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+      WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - id: auth
+        name: Authenticate with Google Cloud
+        uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.SERVICE_ACCOUNT }}'
+          project_id: '${{ vars.PROJECT_ID }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Setup Terragrunt
+        uses: eLco/setup-terragrunt@v1.0.3
+        with:
+          terragrunt_version: ${{ env.tg_version }}
+          github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+
+      - name: Plan Destroy Resources
+        run: |
+          DELETED_PATHS='${{ needs.detect_deletions.outputs.deleted_paths }}'
+          
+          # Function to execute the plan destroy
+          execute_plan_destroy() {
+            local path=$1
+            local type=$2
+            echo "Planning destroy for $type: $path"
+            terragrunt plan -destroy --terragrunt-working-dir "$path" --terragrunt-ignore-external-dependencies || true
+          }
+
+          # Check if we have any paths to destroy
+          if [[ $(echo $DELETED_PATHS | jq -r '.projects | length') -eq 0 ]] && \
+             [[ $(echo $DELETED_PATHS | jq -r '.clusters | length') -eq 0 ]] && \
+             [[ $(echo $DELETED_PATHS | jq -r '.resources | length') -eq 0 ]]; then
+            echo "No resources marked for deletion"
+            exit 0
+          fi
+
+          echo "=== Resources that will be destroyed ==="
+          
+          # Show projects to be destroyed
+          echo $DELETED_PATHS | jq -r '.projects[]' | while read -r path; do
+            if [[ -n "$path" ]]; then
+              echo "Project: $path"
+              execute_plan_destroy "$path" "project"
+            fi
+          done
+
+          # Show clusters to be destroyed
+          echo $DELETED_PATHS | jq -r '.clusters[]' | while read -r path; do
+            if [[ -n "$path" ]]; then
+              echo "Cluster: $path"
+              execute_plan_destroy "$path" "cluster"
+            fi
+          done
+
+          # Show resources to be destroyed
+          echo $DELETED_PATHS | jq -r '.resources[]' | while read -r path; do
+            if [[ -n "$path" ]]; then
+              echo "Resource: $path"
+              execute_plan_destroy "$path" "resource"
+            fi
+          done
+  
+  destroy_removed_resources:
+    needs: [determine_environment, detect_deletions, plan_destroy]
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    environment: ${{ needs.determine_environment.outputs.environment }}
+    env:
+      TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
+      TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
+      TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+      WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+    steps:
+      - name: Checkout before merge
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - id: auth
+        name: Authenticate with Google Cloud
+        uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.SERVICE_ACCOUNT }}'
+          project_id: '${{ vars.PROJECT_ID }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Setup Terragrunt
+        uses: eLco/setup-terragrunt@v1.0.3
+        with:
+          terragrunt_version: ${{ env.tg_version }}
+          github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+
+      - name: Destroy removed resources
+        run: |
+          DELETED_PATHS='${{ needs.detect_deletions.outputs.deleted_paths }}'
+          
+          # Function to execute the destroy command
+          execute_destroy() {
+            local path=$1
+            echo "Destroying resources in: $path"
+            # Add --terragrunt-ignore-external-dependencies to avoid errors
+            echo 'yes' | terragrunt destroy --terragrunt-working-dir "$path" --terragrunt-ignore-external-dependencies
+          }
+
+          # Process deleted projects (high priority)
+          echo $DELETED_PATHS | jq -r '.projects[]' | while read -r path; do
+            if [[ -n "$path" ]]; then
+              execute_destroy "$path"
+            fi
+          done
+
+          # Process deleted clusters (medium priority)
+          echo $DELETED_PATHS | jq -r '.clusters[]' | while read -r path; do
+            if [[ -n "$path" ]]; then
+              execute_destroy "$path"
+            fi
+          done
+
+          # Process deleted resources (low priority)
+          echo $DELETED_PATHS | jq -r '.resources[]' | while read -r path; do
+            if [[ -n "$path" ]]; then
+              execute_destroy "$path"
+            fi
+          done
 
   checks:
     needs: determine_environment
@@ -93,9 +324,9 @@ jobs:
         name: Authenticate with Google Cloud
         uses: "google-github-actions/auth@v2"
         with:
-          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '${{ secrets.SERVICE_ACCOUNT }}'
-          project_id: '${{ vars.PROJECT_ID }}'
+          workload_identity_provider: "${{ env.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+          project_id: "${{ vars.PROJECT_ID }}"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
@@ -107,10 +338,10 @@ jobs:
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       - name: Plan ${{ vars.PROJECT_ID }}
         run: |
-          echo 'y' | terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }} 
-        
+          echo 'y' | terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }}
+
   deploy:
-    needs: [ determine_environment, plan ]
+    needs: [determine_environment, plan]
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
@@ -123,7 +354,7 @@ jobs:
       - name: Set environment based on branch
         run: |
           BRANCH=${{ github.base_ref }}
-          
+
           if [[ $BRANCH == "main" ]]; then
             echo "git_environment=prod" >> $GITHUB_ENV
           elif [[ $BRANCH == "test" ]]; then
@@ -137,9 +368,9 @@ jobs:
         name: Authenticate with Google Cloud
         uses: "google-github-actions/auth@v2"
         with:
-          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '${{ secrets.SERVICE_ACCOUNT }}'
-          project_id: '${{ vars.PROJECT_ID }}'
+          workload_identity_provider: "${{ env.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+          project_id: "${{ vars.PROJECT_ID }}"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
@@ -149,60 +380,6 @@ jobs:
         with:
           terragrunt_version: ${{ env.tg_version }}
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      - name: Apply ${{ vars.PROJECT_ID }} ENV=${{ env.git_environment }} 
+      - name: Apply ${{ vars.PROJECT_ID }} ENV=${{ env.git_environment }}
         run: |
           echo 'y' | terragrunt run-all apply --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }}
-
-  check_destroy:
-    needs: [determine_environment]
-    runs-on: ubuntu-latest
-    environment: ${{ needs.determine_environment.outputs.environment }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: check_destroy
-        run: |
-          DESTROY_FLAG=$(find ${{ env.working_dir }}/${{ vars.PROJECT_ID }} -name "*.tfvars" -exec grep -l "destroy = true" {} \;)
-          if [ ! -z "$DESTROY_FLAG" ]; then
-            echo "destroy=true" >> $GITHUB_OUTPUT
-          else
-            echo "destroy=false" >> $GITHUB_OUTPUT
-          fi
-
-  destroy:
-    needs: [determine_environment, check_destroy]
-    if: needs.check_destroy.outputs.destroy_flag == 'true' && github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    environment: ${{ needs.determine_environment.outputs.environment }}
-    env:
-      TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
-      TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
-      TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
-      WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-    steps:
-      - name: Set environment based on branch
-        run: |
-          BRANCH=${{ github.base_ref }}
-          
-          if [[ $BRANCH == "main" ]]; then
-            echo "git_environment=prod" >> $GITHUB_ENV
-          elif [[ $BRANCH == "test" ]]; then
-            echo "git_environment=test" >> $GITHUB_ENV
-          else
-            echo "git_environment=dev" >> $GITHUB_ENV
-          fi
-      - name: "Checkout"
-        uses: actions/checkout@v4
-      - id: auth
-        name: Authenticate with Google Cloud
-        uses: "google-github-actions/auth@v2"
-        with:
-          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '${{ secrets.SERVICE_ACCOUNT }}'
-          project_id: '${{ vars.PROJECT_ID }}'
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-      - name: Use gcloud CLI
-        run: gcloud info
-      - name: Destroy Infrastructure
-        run: |
-          echo 'y' | terragrunt run-all destroy --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }}
