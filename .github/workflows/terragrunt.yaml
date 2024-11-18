@@ -228,7 +228,7 @@ jobs:
           done
   
   destroy_removed_resources:
-    needs: [determine_environment, detect_deletions, plan_destroy]
+    needs: [determine_environment, detect_deletions]
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
