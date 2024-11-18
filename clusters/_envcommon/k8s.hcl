@@ -11,6 +11,9 @@ locals {
 
   # Expose the base's source URL and the module's tag_version separately, so that it can be overwritten if necessary.
   # This will be used to construct the source URL in the child terragrunt configurations.
+
+  cluster         = local.env_vars.locals.cluster_name
+  environment     = local.env_vars.locals.env
   version         = local.env_vars.locals.version
   base_source_url = "${get_env("TF_VAR_github_modules_url", "")}//modules/cluster"
 }
@@ -20,6 +23,7 @@ locals {
 # environments.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  node_count   = 3
-  machine_type = "n1-standard-4"
+  node_count      = 3
+  machine_type    = "n1-standard-4"
+  service_account = "${local.cluster}-${local.environment}"
 }
