@@ -60,6 +60,11 @@ jobs:
       - name: Find deleted directories
         id: find_deletions
         run: |
+
+          # Ensure jq is installed
+          sudo apt-get update
+          sudo apt-get install -y jq
+
           # Get base and head SHAs
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
@@ -76,7 +81,6 @@ jobs:
           # Function to check if a directory was deleted
           check_dir_deleted() {
             local dir=$1
-            # check if any files reamin in the directory
             if git ls-tree -r --name-only $HEAD_SHA | grep -q "^$dir/"; then
               return 1
             else
@@ -128,7 +132,7 @@ jobs:
       
           done <<< "$DELETED_FILES"
       
-          # Convert arrays to JSON
+          # Convert arrays to JSON, ensuring clean output
           DELETED_PATHS_JSON=$(jq -n \
             --arg projects "$(printf '%s\n' "${deleted_projects[@]}")" \
             --arg clusters "$(printf '%s\n' "${deleted_clusters[@]}")" \
@@ -138,8 +142,11 @@ jobs:
               clusters: ($clusters | split("\n") | map(select(length > 0))),
               resources: ($resources | split("\n") | map(select(length > 0)))
             }')
-      
-          echo "deleted_paths=$DELETED_PATHS_JSON" >> $GITHUB_OUTPUT
+          
+          # Validate JSON and output
+          echo "$DELETED_PATHS_JSON" | jq . || exit 1
+          echo "deleted_paths="$DELETED_PATHS_JSON""
+          echo "deleted_paths="$DELETED_PATHS_JSON"" >> $GITHUB_OUTPUT
 
   plan_destroy:
     needs: [determine_environment, detect_deletions]
