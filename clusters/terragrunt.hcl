@@ -44,7 +44,7 @@ remote_state {
 # Configure what repos to search when you run 'terragrunt catalog'
 catalog {
   urls = [
-    "https://github.com/guicrocetti/argocd_deployment_test",
+    "https://github.com/guicrocetti/terraform-modules",
   ]
 }
 
