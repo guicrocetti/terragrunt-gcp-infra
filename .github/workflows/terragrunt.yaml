@@ -190,7 +190,7 @@ jobs:
             local path=$1
             local type=$2
             echo "Planning destroy for $type: $path"
-            terragrunt plan -destroy --terragrunt-working-dir "$path" --terragrunt-ignore-external-dependencies || true
+            terragrunt plan -destroy --terragrunt-working-dir "$path" --terragrunt-ignore-external-dependencies --terragrunt-ignore-dependency-errors || true
           }
 
           # Check if we have any paths to destroy
@@ -269,7 +269,7 @@ jobs:
             local path=$1
             echo "Destroying resources in: $path"
             # Add --terragrunt-ignore-external-dependencies to avoid errors
-            echo 'yes' | terragrunt destroy --terragrunt-working-dir "$path" --terragrunt-ignore-external-dependencies
+            echo 'yes' | terragrunt destroy --terragrunt-working-dir "$path" --terragrunt-ignore-external-dependencies --terragrunt-ignore-dependency-errors
           }
 
           # Process deleted projects (high priority)
