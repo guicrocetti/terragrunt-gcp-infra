@@ -34,7 +34,7 @@ remote_state {
     if_exists = "overwrite"
   }
   config = {
-    bucket   = "default-bucket-gitops-infra-test-207"
+    bucket   = "secomind-bucket-gitops-infra-test-207"
     prefix   = path_relative_to_include()
     project  = local.project_id
     location = local.region
@@ -44,7 +44,7 @@ remote_state {
 # Configure what repos to search when you run 'terragrunt catalog'
 catalog {
   urls = [
-    "https://github.com/guicrocetti/argocd_deployment_test",
+    "https://github.com/guicrocetti/terraform-modules",
   ]
 }
 
