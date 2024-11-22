@@ -20,8 +20,8 @@ locals {
 }
 
 inputs = {
-  peer_network_self_link1 = "https://www.googleapis.com/compute/v1/projects/${project_id}}/global/networks/default"
+  peer_network_self_link1 = "https://www.googleapis.com/compute/v1/projects/${local.project_id}}/global/networks/default"
   peer_network_name_1     = "defualt"
   peer_network_name_2     = "${local.cluster}-network"
-  peer_network_self_link2 = "https://www.googleapis.com/compute/v1/projects/${project_id}}/global/networks/${local.cluster}-network"
+  peer_network_self_link2 = "https://www.googleapis.com/compute/v1/projects/${local.project_id}}/global/networks/${local.cluster}-network"
 }

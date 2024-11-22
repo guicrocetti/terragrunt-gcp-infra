@@ -3,7 +3,7 @@ include "root" {
 }
 
 include "envcommon" {
-  path   = "${dirname(find_in_parent_folders())}/_envcommon/network.hcl"
+  path   = "${dirname(find_in_parent_folders())}/_envcommon/data_vpc.hcl"
   expose = true
 }
 
@@ -12,6 +12,4 @@ terraform {
 }
 
 inputs = {
-  network_name    = "argocd-test"
-  subnetwork_name = "argocd-test"
 }
