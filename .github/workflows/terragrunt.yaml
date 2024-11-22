@@ -87,7 +87,7 @@ jobs:
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       - name: Plan ${{ vars.PROJECT_ID }}
         run: |
-          echo 'y' | terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ needs.determine_environment.outputs.environment }}
+          terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ needs.determine_environment.outputs.environment }}
         
   deploy:
     needs: [ determine_environment, plan ]
@@ -120,4 +120,4 @@ jobs:
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       - name: Apply ${{ vars.PROJECT_ID }} ENV=${{ needs.determine_environment.outputs.environment }} 
         run: |
-          echo 'y' | terragrunt run-all apply --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ needs.determine_environment.outputs.environment }}
+          terragrunt run-all apply --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ needs.determine_environment.outputs.environment }}
