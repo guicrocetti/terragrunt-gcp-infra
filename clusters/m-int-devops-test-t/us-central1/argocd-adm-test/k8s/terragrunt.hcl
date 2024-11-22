@@ -29,7 +29,7 @@ dependency "vpc" {
 inputs = {
   # All configurations here will have precedence over the default
   node_label            = "teste-ci-terragrunt"
-  node_count            = 3
+  node_count            = 4
   deletion_protection   = false
   machine_type          = "n1-standard-4"
   service_account_email = "${dependency.service_account.outputs.sa_email}"
