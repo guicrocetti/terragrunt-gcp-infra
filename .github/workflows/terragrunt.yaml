@@ -32,11 +32,7 @@ jobs:
     steps:
       - id: set_env
         run: |
-          if [[ ${{ github.event_name }} == 'pull_request_target' ]]; then
-            BRANCH=${{ github.base_ref }}
-          else
-            BRANCH=${{ github.head_ref }}
-          fi
+          BRANCH=${{ github.base_ref }}
 
           if [[ $BRANCH == "main" ]]; then
             echo "environment=prod" >> $GITHUB_OUTPUT
@@ -52,7 +48,6 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
-
       - name: Check terragrunt HCL
         uses: gruntwork-io/terragrunt-action@v2
         with:
@@ -63,6 +58,7 @@ jobs:
 
   plan:
     needs: [determine_environment, checks]
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
     env:
@@ -71,31 +67,15 @@ jobs:
       TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
       WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
     steps:
-      - name: Set environment based on branch
-        run: |
-          if [[ ${{ github.event_name }} == 'pull_request_target' ]]; then
-            BRANCH=${{ github.base_ref }}
-          else
-            BRANCH=${{ github.head_ref }}
-          fi
-
-          if [[ $BRANCH == "main" ]]; then
-            echo "git_environment=prod" >> $GITHUB_ENV
-          elif [[ $BRANCH == "test" ]]; then
-            echo "git_environment=test" >> $GITHUB_ENV
-          else
-            echo "git_environment=dev" >> $GITHUB_ENV
-          fi
-
       - name: "Checkout"
         uses: actions/checkout@v4
       - id: auth
         name: Authenticate with Google Cloud
         uses: "google-github-actions/auth@v2"
         with:
-          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '${{ secrets.SERVICE_ACCOUNT }}'
-          project_id: '${{ vars.PROJECT_ID }}'
+          workload_identity_provider: "${{ env.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+          project_id: "${{ vars.PROJECT_ID }}"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
@@ -105,9 +85,9 @@ jobs:
         with:
           terragrunt_version: ${{ env.tg_version }}
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      - name: Plan ${{ vars.PROJECT_ID }}
+      - name: Plan ${{ vars.PROJECT_ID }} ENV=${{ needs.determine_environment.outputs.environment }} 
         run: |
-          echo 'y' | terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }} 
+          terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }} --terragrunt-include-dir "**/*-${{ needs.determine_environment.outputs.environment }}/**"
         
   deploy:
     needs: [ determine_environment, plan ]
@@ -120,17 +100,6 @@ jobs:
       TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
       WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
     steps:
-      - name: Set environment based on branch
-        run: |
-          BRANCH=${{ github.base_ref }}
-          
-          if [[ $BRANCH == "main" ]]; then
-            echo "git_environment=prod" >> $GITHUB_ENV
-          elif [[ $BRANCH == "test" ]]; then
-            echo "git_environment=test" >> $GITHUB_ENV
-          else
-            echo "git_environment=dev" >> $GITHUB_ENV
-          fi
       - name: "Checkout"
         uses: actions/checkout@v4
       - id: auth
@@ -149,6 +118,6 @@ jobs:
         with:
           terragrunt_version: ${{ env.tg_version }}
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      - name: Apply ${{ vars.PROJECT_ID }} ENV=${{ env.git_environment }} 
+      - name: Apply ${{ vars.PROJECT_ID }} ENV=${{ needs.determine_environment.outputs.environment }} 
         run: |
-          echo 'y' | terragrunt run-all apply --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }}/*/*-${{ env.git_environment }}
+          terragrunt run-all apply --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }} --terragrunt-include-dir "**/*-${{ needs.determine_environment.outputs.environment }}/**"
