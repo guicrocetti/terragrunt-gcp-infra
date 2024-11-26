@@ -90,7 +90,7 @@ jobs:
           terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }} --terragrunt-include-dir "**/*-${{ needs.determine_environment.outputs.environment }}/**"
         
   deploy:
-    needs: [ determine_environment, plan ]
+    needs: [ determine_environment, checks ]
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
