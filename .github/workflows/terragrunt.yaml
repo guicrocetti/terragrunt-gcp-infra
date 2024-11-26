@@ -14,6 +14,7 @@ on:
       - '!clusters/example/**'
     types: [closed]
     branches: [ main, test, dev ]
+  workflow_dispatch:
 
 env:
   tg_version: "0.67.16"
@@ -31,8 +32,13 @@ jobs:
       environment: ${{ steps.set_env.outputs.environment }}
     steps:
       - id: set_env
+        shell: bash
         run: |
-          BRANCH=${{ github.base_ref }}
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            BRANCH="${{ github.ref_name }}"
+          else
+            BRANCH="${{ github.base_ref }}"
+          fi
 
           if [[ $BRANCH == "main" ]]; then
             echo "environment=prod" >> $GITHUB_OUTPUT
@@ -41,6 +47,7 @@ jobs:
           else
             echo "environment=dev" >> $GITHUB_OUTPUT
           fi
+
 
   checks:
     needs: determine_environment
@@ -58,7 +65,7 @@ jobs:
 
   plan:
     needs: [determine_environment, checks]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
     env:
@@ -90,10 +97,13 @@ jobs:
           terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }} --terragrunt-include-dir "**/*-${{ needs.determine_environment.outputs.environment }}/**"
         
   deploy:
-    needs: [ determine_environment, plan ]
+    needs: [ determine_environment, checks ]
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
+    concurrency:
+      group: ${{ needs.determine_environment.outputs.environment }}
+      cancel-in-progress: false
     env:
       TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
       TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
