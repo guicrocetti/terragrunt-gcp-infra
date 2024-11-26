@@ -1,0 +1,48 @@
+name: "Environment GitHub Actions"
+
+on:
+  pull_request:
+    paths:
+      - 'clusters/**'
+      - '!clusters/_envcommon/**'
+      - '!clusters/example/**'
+    branches: [ main, test, dev ]
+  pull_request_target:
+    paths:
+      - 'clusters/**'
+      - '!clusters/_envcommon/**'
+      - '!clusters/example/**'
+    types: [closed]
+    branches: [ main, test, dev ]
+  workflow_dispatch:
+
+env:
+  tg_version: "0.67.16"
+  tf_version: "1.9.7"
+  working_dir: "clusters"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  determine_environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set_env.outputs.environment }}
+    steps:
+      - id: set_env
+        run: |
+          if [[ github.event_name == 'workflow_dispatch' ]]; then
+            BRANCH=${{ github.event.inputs.branch }}
+            BRANCH=$(echo "${GITHUB_REF##*/}")
+          else
+            BRANCH=${{ github.base_ref }}
+
+          if [[ $BRANCH == "main" ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ $BRANCH == "test" ]]; then
+            echo "environment=test" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
