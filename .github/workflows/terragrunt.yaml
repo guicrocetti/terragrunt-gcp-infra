@@ -14,6 +14,7 @@ on:
       - '!clusters/example/**'
     types: [closed]
     branches: [ main, test, dev ]
+  workflow_dispatch:
 
 env:
   tg_version: "0.67.16"
@@ -94,6 +95,9 @@ jobs:
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
+    concurrency:
+      group: ${{ needs.determine_environment.outputs.environment }}
+      cancel-in-progress: false
     env:
       TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
       TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
