@@ -75,6 +75,10 @@ jobs:
       #     mkdir -p ~/.ssh
       #     echo "${{ secrets.GIT_SSH_KEY }}" | tr -d '\r' | ssh-add -
       #     ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ github.event.pull_request.base.ref }}"
       - id: auth
         name: Authenticate with Google Cloud
         uses: "google-github-actions/auth@v2"
@@ -97,10 +101,6 @@ jobs:
         uses: infracost/actions/setup@v3
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
-      - name: Checkout base branch
-        uses: actions/checkout@v4
-        with:
-          ref: "${{ github.event.pull_request.base.ref }}"
 
       # Generate Infracost JSON file as the baseline.
       - name: Generate Infracost cost estimate baseline
@@ -147,6 +147,8 @@ jobs:
     if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'test' || github.ref_name == 'dev')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
       - id: auth
         name: Authenticate with Google Cloud
         uses: "google-github-actions/auth@v2"
@@ -169,9 +171,6 @@ jobs:
         uses: infracost/actions/setup@v3
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-      - name: Checkout main branch
-        uses: actions/checkout@v4
 
       - name: Run Infracost on default branch and update Infracost Cloud
         run: |
