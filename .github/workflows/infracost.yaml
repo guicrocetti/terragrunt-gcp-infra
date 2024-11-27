@@ -17,6 +17,7 @@ on:
       - "!clusters/example/**"
     branches:
       - main
+
       - test
       - dev
 
@@ -26,6 +27,7 @@ env:
   INFRACOST_CURRENCY: EUR
   INFRACOST_CURRENCY_FORMAT: "EUR: 1.234,56€"
   tg_version: "0.67.16"
+  TF_VAR_github_modules_url: "https://github.com/guicrocetti/terraform-modules.git"
 
 jobs:
   determine_environment:
@@ -90,7 +92,8 @@ jobs:
         run: |
           infracost breakdown --path=./${{ env.working_dir }} \
                               --format=json \
-                              --out-file=/tmp/infracost-base.json
+                              --out-file=/tmp/infracost-base.json \
+                              --terraform-force-cli
 
       # Checkout the current PR branch so we can create a diff.
       - name: Checkout PR branch
@@ -146,7 +149,8 @@ jobs:
         run: |
           infracost breakdown --path=./${{ env.working_dir }} \
                     --format=json \
-                    --out-file=infracost.json
+                    --out-file=infracost.json \
+                    --terraform-force-cli
 
           infracost upload --path=infracost.json || echo "Always pass main branch runs even if there are policy failures"
 
