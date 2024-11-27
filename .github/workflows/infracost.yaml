@@ -21,8 +21,10 @@ on:
       - dev
 
 env:
-  working_dir: "clusters"
+  working_dir: "clusters/${{ vars.PROJECT_ID }}"
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  INFRACOST_CURRENCY: EUR
+  INFRACOST_CURRENCY_FORMAT="EUR: 1.234,56€"
 jobs:
   determine_environment:
     runs-on: ubuntu-latest
@@ -80,7 +82,7 @@ jobs:
       # Generate Infracost JSON file as the baseline.
       - name: Generate Infracost cost estimate baseline
         run: |
-          infracost breakdown --path=./${{ env.working_dir }}/${{ vars.PROJECT_ID }} \
+          infracost breakdown --path=. \
                               --format=json \
                               --out-file=/tmp/infracost-base.json \
                               --terraform-force-cli
@@ -92,7 +94,7 @@ jobs:
       # Generate an Infracost diff and save it to a JSON file.
       - name: Generate Infracost diff
         run: |
-          infracost diff --path=./${{ env.working_dir }}/${{ vars.PROJECT_ID }} \
+          infracost diff --path=. \
                           --format=json \
                           --compare-to=/tmp/infracost-base.json \
                           --out-file=/tmp/infracost.json \
@@ -133,7 +135,7 @@ jobs:
 
       - name: Run Infracost on default branch and update Infracost Cloud
         run: |
-          infracost breakdown --path=./${{ env.working_dir }}/${{ vars.PROJECT_ID }} \
+          infracost breakdown --path=. \
                     --format=json \
                     --out-file=infracost.json \
                     --terraform-force-cli
