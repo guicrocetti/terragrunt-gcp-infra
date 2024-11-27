@@ -1,5 +1,5 @@
 # Infracost runs on pull requests (PR) and posts PR comments.
-# If you use Infracost Cloud, Infracost also runs on main/master branch pushes so the dashboard is updated.
+# If you use Infracost Cloud, Infracost also runs on main branch pushes so the dashboard is updated.
 # The GitHub Action docs (https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows) describe other trigger options.
 name: Infracost
 
@@ -24,7 +24,7 @@ env:
   working_dir: "clusters/${{ vars.PROJECT_ID }}"
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   INFRACOST_CURRENCY: EUR
-  INFRACOST_CURRENCY_FORMAT="EUR: 1.234,56€"
+  INFRACOST_CURRENCY_FORMAT: "EUR: 1.234,56€"
   tg_version: "0.67.16"
 
 jobs:
@@ -90,8 +90,7 @@ jobs:
         run: |
           infracost breakdown --path=./${{ env.working_dir }} \
                               --format=json \
-                              --out-file=/tmp/infracost-base.json \
-                              --terraform-force-cli
+                              --out-file=/tmp/infracost-base.json
 
       # Checkout the current PR branch so we can create a diff.
       - name: Checkout PR branch
@@ -103,8 +102,7 @@ jobs:
           infracost diff --path=./${{ env.working_dir }} \
                           --format=json \
                           --compare-to=/tmp/infracost-base.json \
-                          --out-file=/tmp/infracost.json \
-                          --terraform-force-cli
+                          --out-file=/tmp/infracost.json
 
       # Posts a comment to the PR using the 'update' behavior.
       # This creates a single comment and updates it. The "quietest" option.
@@ -141,15 +139,14 @@ jobs:
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      - name: Checkout main/master branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
 
       - name: Run Infracost on default branch and update Infracost Cloud
         run: |
           infracost breakdown --path=./${{ env.working_dir }} \
                     --format=json \
-                    --out-file=infracost.json \
-                    --terraform-force-cli
+                    --out-file=infracost.json
 
           infracost upload --path=infracost.json || echo "Always pass main branch runs even if there are policy failures"
 
