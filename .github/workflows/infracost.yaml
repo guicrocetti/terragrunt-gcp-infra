@@ -6,7 +6,15 @@ name: Infracost
 on:
   pull_request:
     types: [opened, synchronize, closed]
+    paths:
+      - "clusters/**"
+      - "!clusters/_envcommon/**"
+      - "!clusters/example/**"
   push:
+    paths:
+      - "clusters/**"
+      - "!clusters/_envcommon/**"
+      - "!clusters/example/**"
     branches:
       - main
       - test
