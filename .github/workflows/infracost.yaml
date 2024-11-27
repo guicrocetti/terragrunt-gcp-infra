@@ -1,6 +1,8 @@
 # Infracost runs on pull requests (PR) and posts PR comments.
 # If you use Infracost Cloud, Infracost also runs on main/master branch pushes so the dashboard is updated.
 # The GitHub Action docs (https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows) describe other trigger options.
+name: Infracost
+
 on:
   pull_request:
     types: [opened, synchronize, closed]
@@ -39,6 +41,7 @@ jobs:
   # This stage runs the Infracost CLI and posts PR comments.
   # It also updates PR comments when the PR is updated (synchronize event).
   infracost-pull-request-checks:
+    needs: [determine_environment]
     name: Infracost Pull Request Checks
     if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize')
     runs-on: ubuntu-latest
@@ -104,9 +107,11 @@ jobs:
 
   # Run Infracost on default branch and update Infracost Cloud
   infracost-default-branch-update:
+    needs: [determine_environment]
     # If you use private modules, or store Terraform variables or modules in a 3rd party
     # such as TFC or Spacelift, include the same steps/variables as the infracost-pull-request-checks job
     name: Infracost Default Branch Update
+    environment: ${{ needs.determine_environment.outputs.environment }}
     if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'test' || github.ref_name == 'dev')
     runs-on: ubuntu-latest
     steps:
@@ -129,8 +134,10 @@ jobs:
 
   # Update PR status in Infracost Cloud
   infracost-pull-request-status-update:
+    needs: [determine_environment]
     name: Infracost PR Status Update
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    environment: ${{ needs.determine_environment.outputs.environment }}
     runs-on: ubuntu-latest
     steps:
       - name: Infracost PR Status Update
