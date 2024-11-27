@@ -17,7 +17,6 @@ on:
       - "!clusters/example/**"
     branches:
       - main
-
       - test
       - dev
 
@@ -29,6 +28,10 @@ env:
   tg_version: "0.67.16"
   TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
   WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   determine_environment:
