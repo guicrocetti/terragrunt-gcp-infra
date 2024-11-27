@@ -30,8 +30,8 @@ env:
   WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
 
 permissions:
-  contents: "read"
-  id-token: "write"
+  id-token: write
+  contents: read
 
 jobs:
   determine_environment:
