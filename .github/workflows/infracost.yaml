@@ -30,8 +30,9 @@ env:
   WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
 
 permissions:
-  id-token: write
   contents: read
+  id-token: write
+  pull-requests: write
 
 jobs:
   determine_environment:
@@ -64,9 +65,6 @@ jobs:
     if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize')
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
-    permissions:
-      contents: read
-      pull-requests: write # Required to post comments
     steps:
       # If you use private modules, add an environment variable or secret
       # called GIT_SSH_KEY with your private key, so Infracost CLI can access
