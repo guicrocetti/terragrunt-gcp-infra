@@ -27,7 +27,8 @@ env:
   INFRACOST_CURRENCY: EUR
   INFRACOST_CURRENCY_FORMAT: "EUR: 1.234,56€"
   tg_version: "0.67.16"
-  TF_VAR_github_modules_url: "https://github.com/guicrocetti/terraform-modules.git"
+  TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+  WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
 
 jobs:
   determine_environment:
@@ -73,11 +74,24 @@ jobs:
       #     mkdir -p ~/.ssh
       #     echo "${{ secrets.GIT_SSH_KEY }}" | tr -d '\r' | ssh-add -
       #     ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - id: auth
+        name: Authenticate with Google Cloud
+        uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: "${{ env.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+          project_id: "${{ vars.PROJECT_ID }}"
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Use gcloud CLI
+        run: gcloud info
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
           terragrunt_version: ${{ env.tg_version }}
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      - name: Init Terragrunt
+        run: terragrunt run-all init --upgrade --terragrunt-working-dir ${{ env.working_dir }}
       - name: Setup Infracost
         uses: infracost/actions/setup@v3
         with:
@@ -132,11 +146,24 @@ jobs:
     if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'test' || github.ref_name == 'dev')
     runs-on: ubuntu-latest
     steps:
+      - id: auth
+        name: Authenticate with Google Cloud
+        uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: "${{ env.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+          project_id: "${{ vars.PROJECT_ID }}"
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Use gcloud CLI
+        run: gcloud info
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
           terragrunt_version: ${{ env.tg_version }}
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      - name: Init Terragrunt
+        run: terragrunt run-all init --upgrade --terragrunt-working-dir ${{ env.working_dir }}
       - name: Setup Infracost
         uses: infracost/actions/setup@v3
         with:
