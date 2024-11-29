@@ -22,4 +22,6 @@ dependency "k8s" {
 inputs = {
   cluster_endpoint       = dependency.k8s.outputs.cluster_server
   cluster_ca_certificate = dependency.k8s.outputs.cluster_ca_data
+  repository_name = "guicrocetti/argocd-cloud-infra-test"
+  repo_username = "guicrocetti"
 }
