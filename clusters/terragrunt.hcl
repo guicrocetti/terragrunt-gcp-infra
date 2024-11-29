@@ -34,7 +34,7 @@ remote_state {
     if_exists = "overwrite"
   }
   config = {
-    bucket   = "secomind-bucket-gitops-infra-test-207"
+    bucket   = "${local.project_id}-gitops-infra-test-207"
     prefix   = path_relative_to_include()
     project  = local.project_id
     location = local.region

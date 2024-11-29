@@ -20,8 +20,8 @@ dependency "loadbalancer" {
 }
 
 inputs = {
-  dns_zone             = "devops-midgar-services"
+  dns_zone             = "guilherme-iot-basics-com"
   sub_domain           = "argocd"
-  dns_name             = "devops.midgar.services."
+  dns_name             = "guilherme.iot-basics.com."
   loadbalancer_address = dependency.loadbalancer.outputs.loadbalancer_ip
 }
