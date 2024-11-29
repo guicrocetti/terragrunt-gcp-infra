@@ -24,4 +24,5 @@ inputs = {
   cluster_name    = dependency.k8s.outputs.cluster_name
   cluster_server  = dependency.k8s.outputs.cluster_server
   cluster_ca_data = dependency.k8s.outputs.cluster_ca_data
+  secret_name     = "${dependency.k8s.outputs.cluster_name}-wrkld-0-cluster"
 }
