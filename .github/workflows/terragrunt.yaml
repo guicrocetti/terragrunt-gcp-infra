@@ -30,6 +30,7 @@ env:
   TF_VERSION: "1.9.7"
   TERRAGRUNT_VERSION: "0.67.16"
   WORKING_DIR: "clusters"
+  ACTIONS_STEP_DEBUG: true
 
 permissions:
   id-token: write
@@ -55,36 +56,21 @@ jobs:
             echo "environment=dev" >> $GITHUB_OUTPUT
           fi
 
-  checks:
-    needs: determine_environment
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-      
-      - name: Check Terragrunt HCL Format
-        uses: gruntwork-io/terragrunt-action@v2
-        with:
-          tf_version: ${{ env.TF_VERSION }}
-          tg_version: ${{ env.TERRAGRUNT_VERSION }}
-          tg_dir: ${{ env.WORKING_DIR }}
-          tg_command: "hclfmt --terragrunt-check --terragrunt-diff"
-
   detect_changes:
-    needs: [determine_environment, checks]
+    needs: [determine_environment]
     runs-on: ubuntu-latest
+    environment: ${{ needs.determine_environment.outputs.environment }}
     outputs:
-      modules_to_process: ${{ steps.set_modules.outputs.modules }}
+      modules_to_process: ${{ steps.detect_modules.outputs.modules }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v4
       - name: Detect Changed Modules
-        id: set_modules
-        run: |
-          # Detect modules for the current environment that have been added, modified, or deleted
-          MODULES=$(find ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} -type d -name "*-${{ needs.determine_environment.outputs.environment }}" | tr '\n' ' ')
-          echo "modules=$MODULES" >> $GITHUB_OUTPUT
+        id: detect_modules
+        uses: guicrocetti/terragrunt-argocd-actions@main
+        with:
+          working_dir: ${{ env.WORKING_DIR }}
+          project_id: ${{ vars.PROJECT_ID }}
+          environment: ${{ needs.determine_environment.outputs.environment }}
 
   plan:
     needs: [determine_environment, detect_changes]
@@ -92,9 +78,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -102,58 +87,26 @@ jobs:
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
           project_id: ${{ vars.PROJECT_ID }}
 
-      - name: Setup Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
           terragrunt_version: ${{ env.TERRAGRUNT_VERSION }}
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
-      - name: Terragrunt Init
-        run: |
-          terragrunt run-all init \
-            --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
-            --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules }}"
-
       - name: Terragrunt Plan
-        id: plan
         run: |
           terragrunt run-all plan \
-            --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
-            --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules }}" | \
-            tee plan_output.txt
-
-      - name: Comment Plan Results
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const planOutput = fs.readFileSync('plan_output.txt', 'utf8');
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `### Terragrunt Plan Output\n\n\`\`\`\n${planOutput}\n\`\`\``
-            });
+          --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
+          --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
 
   apply:
     needs: [determine_environment, detect_changes, plan]
-    if: >
-      (github.event_name == 'pull_request_target' && github.event.pull_request.merged == true) ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.action_type == 'apply')
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action_type == 'apply'
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
-    concurrency:
-      group: ${{ needs.determine_environment.outputs.environment }}-apply
-      cancel-in-progress: false
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -167,49 +120,11 @@ jobs:
           terragrunt_version: ${{ env.TERRAGRUNT_VERSION }}
           github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
-      - name: Terragrunt Init and Apply
+      - name: Terragrunt Apply
         run: |
           terragrunt run-all apply -auto-approve \
-            --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
-            --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules }}"
-
-      - name: Update ArgoCD Configuration
-        env:
-          GH_TOKEN: ${{ secrets.ARGOCD_GITHUB_TOKEN }}
-          ARGOCD_REPO: ${{ vars.ARGOCD_CONFIG_REPO }}
-        run: |
-          # Clone ArgoCD Config Repo
-          git clone https://github.com/$ARGOCD_REPO.git argocd-config
-          cd argocd-config
-          
-          # Get cluster info
-          CLUSTER_NAME=$(cd ../clusters/${{ vars.PROJECT_ID }} && terragrunt output -raw cluster_name)
-          CLUSTER_ENDPOINT=$(cd ../clusters/${{ vars.PROJECT_ID }} && terragrunt output -raw cluster_endpoint)
-          
-          # Update project-0.yaml if cluster doesn't exist
-          if ! grep -q "server: https://${CLUSTER_ENDPOINT}:6443" "argocd/project-0.yaml"; then
-            git config user.name "GitHub Actions Bot"
-            git config user.email "<>"
-            
-            BRANCH_NAME="add-cluster-${CLUSTER_NAME}"
-            git checkout -b $BRANCH_NAME
-            
-            # Add cluster to project-0.yaml using yq
-            yq eval -i '.spec.destinations += {"namespace": "*", "server": "https://'${CLUSTER_ENDPOINT}':6443", "name": "'${CLUSTER_NAME}'"}' argocd/project-0.yaml
-            
-            git add argocd/project-0.yaml
-            git commit -m "Add cluster ${CLUSTER_NAME} to ArgoCD configuration"
-            git push origin $BRANCH_NAME
-            
-            gh pr create \
-              --title "Add cluster ${CLUSTER_NAME} to ArgoCD" \
-              --body "Automatically add new cluster to ArgoCD configuration" \
-              --base main
-          fi
-          
-          # Apply Kustomization in local ArgoCD folder
-          cd ..
-          kustomize build argocd | kubectl apply -f -
+          --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
+          --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
 
   destroy:
     needs: [determine_environment, detect_changes]
@@ -217,30 +132,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.determine_environment.outputs.environment }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.SERVICE_ACCOUNT }}
-          project_id: ${{ vars.PROJECT_ID }}
-
-      - name: Setup Terragrunt
-        uses: eLco/setup-terragrunt@v1.0.3
-        with:
-          terragrunt_version: ${{ env.TERRAGRUNT_VERSION }}
-          github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-
-      - name: Detect Deleted Modules
-        id: detect_deleted
-        run: |
-          DELETED_MODULES=$(find ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} -type d -name "*-${{ needs.determine_environment.outputs.environment }}" | tr '\n' ' ')
-          echo "modules=$DELETED_MODULES" >> $GITHUB_OUTPUT
-
+      - uses: actions/checkout@v4
+      
       - name: Terragrunt Destroy
         run: |
           terragrunt run-all destroy -auto-approve \
-            --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
-            --terragrunt-include-dir "${{ steps.detect_deleted.outputs.modules }}"
+          --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
+          --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
