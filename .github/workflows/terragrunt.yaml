@@ -59,6 +59,7 @@ jobs:
   detect_changes:
     needs: [determine_environment]
     runs-on: ubuntu-latest
+    environment: ${{ needs.determine_environment.outputs.environment }}
     outputs:
       modules_to_process: ${{ steps.detect_modules.outputs.modules }}
     steps:
