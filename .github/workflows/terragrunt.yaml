@@ -30,6 +30,7 @@ env:
   TF_VERSION: "1.9.7"
   TERRAGRUNT_VERSION: "0.67.16"
   WORKING_DIR: "clusters"
+  ACTIONS_STEP_DEBUG: true
 
 permissions:
   id-token: write
@@ -62,7 +63,6 @@ jobs:
       modules_to_process: ${{ steps.detect_modules.outputs.modules }}
     steps:
       - uses: actions/checkout@v4
-      
       - name: Detect Changed Modules
         id: detect_modules
         uses: guicrocetti/terragrunt-argocd-actions@main
