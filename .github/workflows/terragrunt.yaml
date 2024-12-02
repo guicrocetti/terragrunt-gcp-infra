@@ -3,10 +3,10 @@ name: "Terragrunt Infrastructure Deployment"
 on:
   pull_request:
     paths:
-      - 'clusters/**'
-      - '!clusters/_envcommon/**'
-      - '!clusters/example/**'
-    branches: [ main, test, dev ]
+      - "clusters/**"
+      - "!clusters/_envcommon/**"
+      - "!clusters/example/**"
+    branches: [main, test, dev]
   workflow_dispatch:
     inputs:
       action_type:
@@ -64,6 +64,20 @@ jobs:
       modules_to_process: ${{ steps.detect_modules.outputs.modules }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            .github/**
+            clusters/${{ vars.PROJECT_ID }}/**/*-${{ needs.determine_environment.outputs.environment }}/**
+            clusters/terragrunt.hcl
+            clusters/_envcommon/
+            clusters/versions.hcl
+      - name: Print Folder Tree
+        uses: jaywcjlove/github-action-folder-tree@main
+        with:
+          exclude: "node_modules|dist|.git|.husky"
+          path: .
+          depth: 12
       - name: Detect Changed Modules
         id: detect_modules
         uses: guicrocetti/terragrunt-argocd-actions@main
@@ -71,22 +85,6 @@ jobs:
           working_dir: ${{ env.WORKING_DIR }}
           project_id: ${{ vars.PROJECT_ID }}
           environment: ${{ needs.determine_environment.outputs.environment }}
-
-  plan:
-    needs: [determine_environment, detect_changes]
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action_type == 'plan')
-    runs-on: ubuntu-latest
-    environment: ${{ needs.determine_environment.outputs.environment }}
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.SERVICE_ACCOUNT }}
-          project_id: ${{ vars.PROJECT_ID }}
-
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
@@ -95,47 +93,73 @@ jobs:
 
       - name: Terragrunt Plan
         run: |
-          terragrunt run-all plan \
-          --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
-          --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
+          terragrunt run-all init --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }}
+          terragrunt run-all plan --terragrunt-non-interactive --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }}
 
-  apply:
-    needs: [determine_environment, detect_changes, plan]
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action_type == 'apply'
-    runs-on: ubuntu-latest
-    environment: ${{ needs.determine_environment.outputs.environment }}
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.SERVICE_ACCOUNT }}
-          project_id: ${{ vars.PROJECT_ID }}
+  # plan:
+  #   needs: [determine_environment, detect_changes]
+  #   if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action_type == 'plan')
+  #   runs-on: ubuntu-latest
+  #   environment: ${{ needs.determine_environment.outputs.environment }}
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Setup Terragrunt
-        uses: eLco/setup-terragrunt@v1.0.3
-        with:
-          terragrunt_version: ${{ env.TERRAGRUNT_VERSION }}
-          github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+  #     - name: Authenticate with Google Cloud
+  #       uses: google-github-actions/auth@v2
+  #       with:
+  #         workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+  #         service_account: ${{ secrets.SERVICE_ACCOUNT }}
+  #         project_id: ${{ vars.PROJECT_ID }}
 
-      - name: Terragrunt Apply
-        run: |
-          terragrunt run-all apply -auto-approve \
-          --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
-          --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
+  #     - name: Setup Terragrunt
+  #       uses: eLco/setup-terragrunt@v1.0.3
+  #       with:
+  #         terragrunt_version: ${{ env.TERRAGRUNT_VERSION }}
+  #         github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
-  destroy:
-    needs: [determine_environment, detect_changes]
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action_type == 'destroy'
-    runs-on: ubuntu-latest
-    environment: ${{ needs.determine_environment.outputs.environment }}
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Terragrunt Destroy
-        run: |
-          terragrunt run-all destroy -auto-approve \
-          --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
-          --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
+  #     - name: Terragrunt Plan
+  #       run: |
+  #         terragrunt run-all plan \
+  #         --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
+  #         --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
+
+  # apply:
+  #   needs: [determine_environment, detect_changes, plan]
+  #   if: github.event_name == 'workflow_dispatch' && github.event.inputs.action_type == 'apply'
+  #   runs-on: ubuntu-latest
+  #   environment: ${{ needs.determine_environment.outputs.environment }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Authenticate with Google Cloud
+  #       uses: google-github-actions/auth@v2
+  #       with:
+  #         workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+  #         service_account: ${{ secrets.SERVICE_ACCOUNT }}
+  #         project_id: ${{ vars.PROJECT_ID }}
+
+  #     - name: Setup Terragrunt
+  #       uses: eLco/setup-terragrunt@v1.0.3
+  #       with:
+  #         terragrunt_version: ${{ env.TERRAGRUNT_VERSION }}
+  #         github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+
+  #     - name: Terragrunt Apply
+  #       run: |
+  #         terragrunt run-all apply -auto-approve \
+  #         --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
+  #         --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
+
+  # destroy:
+  #   needs: [determine_environment, detect_changes]
+  #   if: github.event_name == 'workflow_dispatch' && github.event.inputs.action_type == 'destroy'
+  #   runs-on: ubuntu-latest
+  #   environment: ${{ needs.determine_environment.outputs.environment }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Terragrunt Destroy
+  #       run: |
+  #         terragrunt run-all destroy -auto-approve \
+  #         --terragrunt-working-dir ${{ env.WORKING_DIR }}/${{ vars.PROJECT_ID }} \
+  #         --terragrunt-include-dir "${{ needs.detect_changes.outputs.modules_to_process }}"
