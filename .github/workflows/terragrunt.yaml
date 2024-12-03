@@ -72,6 +72,17 @@ jobs:
             clusters/terragrunt.hcl
             clusters/_envcommon/
             clusters/versions.hcl
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: ${{ needs.determine_environment.outputs.environment }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            .github/**
+            clusters/${{ vars.PROJECT_ID }}/**/*-${{ needs.determine_environment.outputs.environment }}/**
+            clusters/terragrunt.hcl
+            clusters/_envcommon/
+            clusters/versions.hcl
       - name: Print Folder Tree
         uses: jaywcjlove/github-action-folder-tree@main
         with:
@@ -85,6 +96,7 @@ jobs:
           working_dir: ${{ env.WORKING_DIR }}
           project_id: ${{ vars.PROJECT_ID }}
           environment: ${{ needs.determine_environment.outputs.environment }}
+
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
