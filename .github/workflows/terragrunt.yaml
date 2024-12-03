@@ -63,8 +63,10 @@ jobs:
     outputs:
       modules_to_process: ${{ steps.detect_modules.outputs.modules }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout PR
+        uses: actions/checkout@v4
         with:
+          path: "pr_branch"
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             .github/**
@@ -72,10 +74,11 @@ jobs:
             clusters/terragrunt.hcl
             clusters/_envcommon/
             clusters/versions.hcl
-      - name: Checkout
+      - name: Checkout ${{ needs.determine_environment.outputs.environment }}
         uses: actions/checkout@v4
         with:
-          path: ${{ needs.determine_environment.outputs.environment }}
+          path: "target_branch"
+          ref: ${{ needs.determine_environment.outputs.environment }}
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             .github/**
