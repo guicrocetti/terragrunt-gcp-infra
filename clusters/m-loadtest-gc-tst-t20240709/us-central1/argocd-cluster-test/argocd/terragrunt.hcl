@@ -22,11 +22,10 @@ dependency "k8s" {
 }
 
 inputs = {
-  cluster_endpoint               = dependency.k8s.outputs.cluster_server
-  cluster_ca_certificate         = dependency.k8s.outputs.cluster_ca_data
-  repo_name                      = "argocd-cloud-infra-test"
-  repo_username                  = "guicrocetti"
-  environment                    = "main"
-  kind_external_secret_name      = "private-repo"
-  kind_external_secret_namespace = "argocd"
+  cluster_endpoint       = dependency.k8s.outputs.cluster_server
+  cluster_ca_certificate = dependency.k8s.outputs.cluster_ca_data
+  repo_name              = "argocd-cloud-infra-test"
+  repo_username          = "guicrocetti"
+  environment            = "main"
+  ARGOCD_GITHUB_TOKEN    = get_env("TF_VAR_ARGOCD_GITHUB_TOKEN")
 }

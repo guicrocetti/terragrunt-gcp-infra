@@ -18,21 +18,11 @@ locals {
   service_account_email = "${local.service_account_name}@${local.project_id}.iam.gserviceaccount.com"
 }
 
-dependency "vpc" {
-  config_path = find_in_parent_folders("vpc")
-  mock_outputs = {
-    network_self_link    = "projects/project_id/global/networks/default"
-    subnetwork_self_link = "projects/project_id/regions/region/subnetworks/default"
-  }
-}
-
 inputs = {
   # All configurations here will have precedence over the default
   node_label            = "argocd-cluster-test"
-  node_count            = 3
+  node_count            = 2
   deletion_protection   = false
-  machine_type          = "n1-standard-8"
+  machine_type          = "n1-standard-4"
   service_account_email = "${local.service_account_email}"
-  network_self_link     = dependency.vpc.outputs.network_self_link
-  subnetwork_self_link  = dependency.vpc.outputs.subnetwork_self_link
 }
