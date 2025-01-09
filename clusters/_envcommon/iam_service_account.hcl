@@ -13,7 +13,7 @@ locals {
   # Expose the base's source URL and the module's tag_version separately, so that it can be overwritten if necessary.
   # This will be used to construct the source URL in the child terragrunt configurations.
   version         = local.env_vars.locals.version
-  base_source_url = "${get_env("TF_VAR_github_modules_url", "")}//modules/iam_service_account"
+  base_source_url = "${get_env("TF_VAR_github_modules_url")}//modules/iam_service_account"
 }
 # ---------------------------------------------------------------------------------------------------------------------
 # MODULE PARAMETERS
