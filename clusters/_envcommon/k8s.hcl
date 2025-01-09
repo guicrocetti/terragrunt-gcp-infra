@@ -20,6 +20,8 @@ locals {
 # environments.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  node_count   = 3
-  machine_type = "n1-standard-4"
+  node_count           = 3
+  machine_type         = "n1-standard-4"
+  network_self_link    = ""
+  subnetwork_self_link = ""
 }
