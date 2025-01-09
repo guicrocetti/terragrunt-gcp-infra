@@ -17,8 +17,8 @@ on:
   workflow_dispatch:
 
 env:
-  tg_version: "0.67.16"
-  tf_version: "1.9.7"
+  tg_version: "0.71.2"
+  tf_version: "1.10.3"
   working_dir: "clusters"
 
 permissions:
@@ -71,6 +71,7 @@ jobs:
       TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
       TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
       TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+      TF_VAR_ARGOCD_GITHUB_TOKEN: ${{ secrets.ARGOCD_GITHUB_TOKEN }}
       WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
     steps:
       - name: "Checkout"
@@ -107,6 +108,7 @@ jobs:
       TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
       TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
       TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+      TF_VAR_ARGOCD_GITHUB_TOKEN: ${{ secrets.ARGOCD_GITHUB_TOKEN }}
       WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
     steps:
       - name: "Checkout"
