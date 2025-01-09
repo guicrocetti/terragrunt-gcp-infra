@@ -27,4 +27,7 @@ locals {
 inputs = {
   label       = "cluster_secret_data"
   secret_name = "${local.project_id}-${local.cluster}-${local.environment}"
+  SECRET_DATA = ""
+  cluster_ca_data = ""
+  cluster_server = ""
 }
