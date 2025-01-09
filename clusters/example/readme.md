@@ -19,13 +19,13 @@ Each resource folder only requires a single `terragrunt.hcl` file. The basic str
 ```hcl
 # Use "root" to access variables from "env.hcl", "region.hcl", and "account.hcl" in parent folders
 include "root" {
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
 }
 
 # Use "envcommon" to include common variables defined in the _envcommon folder.
 # Ensure resource folder names match those in _envcommon (e.g., _envcommon/k8s.hcl)
 include "envcommon" {
-  path = "${dirname(find_in_parent_folders())}/_envcommon/k8s.hcl"
+  path = "${dirname(find_in_parent_folders("root.hcl"))}/_envcommon/k8s.hcl"
   expose = true
 }
 
