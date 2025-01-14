@@ -22,8 +22,19 @@ dependency "k8s" {
   }
 }
 
+dependency "service_account" {
+  config_path = find_in_parent_folders("service_account")
+  mock_outputs = {
+    sa_email = "sa_email@project_id.iam.google.com"
+    sa_name  = "sa_name"
+  }
+}
+
 inputs = {
-  cluster_name    = dependency.k8s.outputs.cluster_name
-  cluster_server  = dependency.k8s.outputs.cluster_server
-  cluster_ca_data = dependency.k8s.outputs.cluster_ca_data
+  SECRET_DATA = jsonencode({
+    name    = dependency.k8s.outputs.cluster_name
+    server  = dependency.k8s.outputs.cluster_server
+    caData  = dependency.k8s.outputs.cluster_ca_data
+    saEmail = dependency.service_account.outputs.sa_email
+  })
 }
