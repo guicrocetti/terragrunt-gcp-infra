@@ -7,21 +7,21 @@ on:
   pull_request:
     types: [opened, synchronize, closed]
     paths:
-      - "clusters/**"
-      - "!clusters/_envcommon/**"
-      - "!clusters/example/**"
+      - "infra/**"
+      - "!infra/_envcommon/**"
+      - "!infra/example/**"
   push:
     paths:
-      - "clusters/**"
-      - "!clusters/_envcommon/**"
-      - "!clusters/example/**"
+      - "infra/**"
+      - "!infra/_envcommon/**"
+      - "!infra/example/**"
     branches:
       - main
       - test
       - dev
 
 env:
-  working_dir: "clusters/${{ vars.PROJECT_ID }}"
+  working_dir: "infra/${{ vars.PROJECT_ID }}"
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   INFRACOST_CURRENCY: EUR
   INFRACOST_CURRENCY_FORMAT: "EUR: 1.234,56€"

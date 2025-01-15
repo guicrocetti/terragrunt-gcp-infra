@@ -3,15 +3,15 @@ name: "Terragrunt GitHub Actions"
 on:
   pull_request:
     paths:
-      - "clusters/**"
-      - "!clusters/_envcommon/**"
-      - "!clusters/example/**"
+      - "infra/**"
+      - "!infra/_envcommon/**"
+      - "!infra/example/**"
     branches: [main, test, dev]
   pull_request_target:
     paths:
-      - "clusters/**"
-      - "!clusters/_envcommon/**"
-      - "!clusters/example/**"
+      - "infra/**"
+      - "!infra/_envcommon/**"
+      - "!infra/example/**"
     types: [closed]
     branches: [main, test, dev]
   workflow_dispatch:
@@ -19,7 +19,7 @@ on:
 env:
   tg_version: "0.71.2"
   tf_version: "1.10.3"
-  working_dir: "clusters"
+  working_dir: "infra"
 
 permissions:
   id-token: write

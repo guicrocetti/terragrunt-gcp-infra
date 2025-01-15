@@ -6,7 +6,7 @@ This is an example template for deploying your infrastructure. To use it, simply
 
 The second nested folder is the **region**. Here, copy and paste the `example-region` folder, replacing its name with the name of your region (e.g., `us_central1`, `europe_west4`, etc.).
 
-Within each region folder, there is a **clusters** folder. Rename each cluster folder following this pattern: **_"cluster-client-environment"_**. For instance: **_"marketplace-shared-prod"_**.
+Within each region folder, there is a **infra** folder. Rename each cluster folder following this pattern: **_"cluster-client-environment"_**. For instance: **_"marketplace-shared-prod"_**.
 
 ## Resources
 
