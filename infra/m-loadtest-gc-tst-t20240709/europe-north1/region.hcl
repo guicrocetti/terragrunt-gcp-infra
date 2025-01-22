@@ -2,5 +2,5 @@
 # configure the remote state bucket and pass forward to the child modules as inputs.
 locals {
   region = basename(get_parent_terragrunt_dir())
-  zone   = "${local.region}-b"
+  zone   = "${local.region}-c"
 }

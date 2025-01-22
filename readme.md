@@ -4,16 +4,15 @@ This project follows a split repository pattern for better infrastructure manage
 
 ## Repository Structure
 
-1. **Terraform Modules Repository (Public)**
+1. **Terraform Modules Repository[https://github.com/secomind/terraform-modules]**
 
    - Contains reusable Terraform modules
-   - Publicly accessible for community use
    - Focuses on modular and maintainable infrastructure components
 
-2. **Terragrunt Infrastructure Repository (Private)**
+2. **Terragrunt Infrastructure Repository[https://github.com/secomind/gitops-infra]**
    - Implements infrastructure using Terragrunt
-   - References modules from the public Terraform repository
-   - Requires access to GitHub environments (enterprise features)
+   - References modules from the Terraform repository
+   - Requires access to GitHub environments
    - Contains sensitive configuration and organization-specific settings
 
 ## Requirements

@@ -9,8 +9,8 @@ include "root" {
 }
 
 inputs = {
-  pool_provider_id = "github-ci-provider2"
-  pool_id          = "github-ci-pool2"
+  pool_provider_id = "github-ci-gitops-provider"
+  pool_id          = "github-ci-gitops-pool"
   oidc_issuer      = "https://token.actions.githubusercontent.com"
 
   attribute_condition = "attribute.repository.startsWith('guicrocetti/')"
@@ -21,7 +21,7 @@ inputs = {
     "attribute.repository" = "assertion.repository"
   }
 
-  pool_display_name          = "Github Workload Identity Pool2"
-  pool_description           = "Identity Pool for Github2"
-  pool_providrr_display_name = "GitHub Provider2"
+  pool_display_name          = "Github Workload Identity Pool"
+  pool_description           = "Identity Pool for Github"
+  pool_providrr_display_name = "GitHub Provider"
 }

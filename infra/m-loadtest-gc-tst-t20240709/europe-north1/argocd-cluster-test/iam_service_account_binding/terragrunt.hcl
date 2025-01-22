@@ -25,7 +25,7 @@ locals {
 }
 
 # dependency "service_account" {
-#   config_path = find_in_parent_folders("project-management-test/service_account_adm")
+#   config_path = find_in_parent_folders("project-management-tst/service_account_adm")
 #   mock_outputs = {
 #     sa_email = "sa_email@project_id.iam.google.com"
 #     sa_id    = "projects/project-id/serviceAccounts/service-account-name@project-id.iam.gserviceaccount.com"

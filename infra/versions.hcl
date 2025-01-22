@@ -1,7 +1,7 @@
 locals {
   versions = {
-    dev  = "dev"
-    test = "test"
-    prod = "prod"
+    dev = "dev"
+    tst = "test"
+    prd = "main"
   }
 }

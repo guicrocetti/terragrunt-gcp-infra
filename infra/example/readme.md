@@ -30,7 +30,7 @@ include "envcommon" {
 }
 
 # Define "source" as the module source repository link.
-# Ensure the correct naming pattern is used, such as dev/test/prod, matching the cluster name
+# Ensure the correct naming pattern is used, such as dev/tst/prd, matching the cluster name
 terraform {
   source = "${include.envcommon.locals.base_source_url}?ref=${include.envcommon.locals.version}"
 }
