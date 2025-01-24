@@ -5,20 +5,19 @@ name: Infracost
 
 on:
   pull_request:
-    types: [opened, synchronize, closed]
     paths:
       - "infra/**"
       - "!infra/_envcommon/**"
       - "!infra/example/**"
-  push:
+    branches: [main, test, dev]
+  pull_request_target:
     paths:
       - "infra/**"
       - "!infra/_envcommon/**"
       - "!infra/example/**"
-    branches:
-      - main
-      - test
-      - dev
+    types: [closed]
+    branches: [main, test, dev]
+  workflow_dispatch:
 
 env:
   working_dir: "infra/projects"

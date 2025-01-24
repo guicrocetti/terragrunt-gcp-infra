@@ -143,4 +143,4 @@ jobs:
           terragrunt_version: ${{ env.tg_version }}
       - name: Apply ${{ vars.PROJECT_ID }} ENV=${{ needs.determine_environment.outputs.environment }}
         run: |
-          terragrunt run-all apply -auto-approve --terragrunt-working-dir ${{ env.working_dir }} --terragrunt-strict-include --terragrunt-include-dir "projects/*/*/*-${{ needs.determine_environment.outputs.environment }}/**"
+          terragrunt --terragrunt-non-interactive run-all apply -auto-approve --terragrunt-working-dir ${{ env.working_dir }} --terragrunt-strict-include --terragrunt-include-dir "projects/*/*/*-${{ needs.determine_environment.outputs.environment }}/**"
