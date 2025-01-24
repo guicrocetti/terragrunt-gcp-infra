@@ -74,11 +74,11 @@ Secrets and Variables must be configured for each environment.
 
 # SUMMARY:
 
-Here's a clear summary of how users can deploy their clusters (test, dev, prod) based on the provided documentation:
+Here's a clear summary of how users can deploy their stacks (test, dev, prod) based on the provided documentation:
 
 1. Infrastructure Setup:
 
-- The team can fallow the clusters/example folder to create the infrastructure.
-- The dev team can deploy clusters only on the dev environment.
-- The Ops team can deploy clusters in test and prod environments.
-- Name clusters following the pattern: "cluster-client-environment" (e.g., marketplace-shared-prod)
+- The team can fallow the infra/example folder to create the infrastructure.
+- The dev team can deploy stacks only on the dev environment.
+- The Ops team can deploy stacks in test and prod environments.
+- Name stacks following the pattern: "stack-client-environment" (e.g., marketplace-shared-prod)

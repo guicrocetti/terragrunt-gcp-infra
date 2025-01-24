@@ -3,23 +3,23 @@ name: "Terragrunt GitHub Actions"
 on:
   pull_request:
     paths:
-      - "clusters/**"
-      - "!clusters/_envcommon/**"
-      - "!clusters/example/**"
+      - "infra/**"
+      - "!infra/_envcommon/**"
+      - "!infra/example/**"
     branches: [main, test, dev]
   pull_request_target:
     paths:
-      - "clusters/**"
-      - "!clusters/_envcommon/**"
-      - "!clusters/example/**"
+      - "infra/**"
+      - "!infra/_envcommon/**"
+      - "!infra/example/**"
     types: [closed]
     branches: [main, test, dev]
   workflow_dispatch:
 
 env:
-  tg_version: "0.67.16"
-  tf_version: "1.9.7"
-  working_dir: "clusters"
+  tg_version: "0.71.2"
+  tf_version: "1.10.3"
+  working_dir: "infra"
 
 permissions:
   id-token: write
@@ -71,6 +71,7 @@ jobs:
       TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
       TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
       TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+      TF_VAR_ARGOCD_GITHUB_TOKEN: ${{ secrets.ARGOCD_GITHUB_TOKEN }}
       WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
     steps:
       - name: "Checkout"
@@ -86,14 +87,20 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
         run: gcloud info
+      - name: Configure Git Token for Private Modules
+        run: |
+          git config --global url."https://${{ secrets.PERSONAL_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.tf_version }}
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
           terragrunt_version: ${{ env.tg_version }}
-          github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       - name: Plan ${{ vars.PROJECT_ID }} ENV=${{ needs.determine_environment.outputs.environment }}
         run: |
-          terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }} --terragrunt-include-dir "**/*-${{ needs.determine_environment.outputs.environment }}/**"
+          terragrunt run-all plan --terragrunt-working-dir ${{ env.working_dir }} --terragrunt-strict-include --terragrunt-include-dir "projects/*/*/*-${{ needs.determine_environment.outputs.environment }}/**"
 
   deploy:
     needs: [determine_environment, checks]
@@ -107,6 +114,7 @@ jobs:
       TF_VAR_cloudamqp_apikey: ${{ secrets.CLOUDAMQP_APIKEY }}
       TF_VAR_scylla_token: ${{ secrets.SCYLLA_TOKEN }}
       TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
+      TF_VAR_ARGOCD_GITHUB_TOKEN: ${{ secrets.ARGOCD_GITHUB_TOKEN }}
       WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
     steps:
       - name: "Checkout"
@@ -122,11 +130,17 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
         run: gcloud info
+      - name: Configure Git Token for Private Modules
+        run: |
+          git config --global url."https://${{ secrets.PERSONAL_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.tf_version }}
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
           terragrunt_version: ${{ env.tg_version }}
-          github_token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       - name: Apply ${{ vars.PROJECT_ID }} ENV=${{ needs.determine_environment.outputs.environment }}
         run: |
-          --terragrunt-non-interactive run-all apply -auto-approve --terragrunt-working-dir ${{ env.working_dir }}/${{ vars.PROJECT_ID }} --terragrunt-include-dir "**/*-${{ needs.determine_environment.outputs.environment }}/**"
+          terragrunt run-all apply -auto-approve --terragrunt-working-dir ${{ env.working_dir }} --terragrunt-strict-include --terragrunt-include-dir "projects/*/*/*-${{ needs.determine_environment.outputs.environment }}/**"
