@@ -5,7 +5,7 @@
 
 locals {
   # Automatically load environment-level variables
-  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+  env_vars     = read_terragrunt_config(find_in_parent_folders("env.hcl"))
   account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
 
   service_account = local.account_vars.locals.service_account

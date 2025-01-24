@@ -12,11 +12,11 @@ terraform {
 }
 
 locals {
-  account_vars     = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
 }
 
 inputs = {
-  name = local.account_vars.locals.service_account
+  name         = local.account_vars.locals.service_account
   display_name = "admin project service account by terragrunt"
   description  = "admin project service account by terragrunt"
 }

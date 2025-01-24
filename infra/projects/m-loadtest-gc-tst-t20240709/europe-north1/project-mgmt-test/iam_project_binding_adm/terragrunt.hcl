@@ -34,7 +34,8 @@ inputs = {
     "roles/clouddeploymentmanager.serviceAgent",
     "roles/backupdr.cloudStorageOperator",
     "roles/container.clusterAdmin",
-    "roles/secretmanager.admin"
+    "roles/secretmanager.admin",
+    "roles/iam.workloadIdentityPoolAdmin"
   ]
   members = ["serviceAccount:${dependency.service_account.outputs.sa_email}"]
 }

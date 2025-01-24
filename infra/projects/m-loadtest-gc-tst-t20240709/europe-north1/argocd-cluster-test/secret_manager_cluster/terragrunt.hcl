@@ -30,11 +30,19 @@ dependency "service_account" {
   }
 }
 
+dependency "load_balancer" {
+  config_path = find_in_parent_folders("loadbalancer")
+  mock_outputs = {
+    loadbalancer_ip = "1.1.1.1"
+  }
+}
+
 inputs = {
   SECRET_DATA = jsonencode({
-    name    = dependency.k8s.outputs.cluster_name
-    server  = dependency.k8s.outputs.cluster_server
-    caData  = dependency.k8s.outputs.cluster_ca_data
-    saEmail = dependency.service_account.outputs.sa_email
+    name         = dependency.k8s.outputs.cluster_name
+    server       = dependency.k8s.outputs.cluster_server
+    caData       = dependency.k8s.outputs.cluster_ca_data
+    saEmail      = dependency.service_account.outputs.sa_email
+    loadbalancer = dependency.load_balancer.outputs.loadbalancer_ip
   })
 }

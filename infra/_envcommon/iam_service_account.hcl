@@ -21,7 +21,7 @@ locals {
 # environments.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  name         = "${local.cluster}-sa"
+  name         = local.cluster
   display_name = "service account ${local.cluster}"
   description  = "service account ${local.cluster}"
 }

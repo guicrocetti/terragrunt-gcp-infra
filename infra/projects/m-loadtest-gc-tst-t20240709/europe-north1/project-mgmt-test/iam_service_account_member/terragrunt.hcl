@@ -26,6 +26,6 @@ dependency "workload" {
 
 inputs = {
   service_account_id = dependency.service_account.outputs.sa_id
-  roles                 = ["roles/iam.workloadIdentityUser"]
-  member                = "principalSet://iam.googleapis.com/${dependency.workload.outputs.pool_name}/*"
+  roles              = ["roles/iam.workloadIdentityUser"]
+  member             = "principalSet://iam.googleapis.com/${dependency.workload.outputs.pool_name}/*"
 }

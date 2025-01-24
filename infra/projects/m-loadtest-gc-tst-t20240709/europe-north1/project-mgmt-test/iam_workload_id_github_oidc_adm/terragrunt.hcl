@@ -9,8 +9,8 @@ include "root" {
 }
 
 inputs = {
-  pool_provider_id = "github-ci-gitops-provider"
-  pool_id          = "github-ci-gitops-pool"
+  pool_provider_id = "github-ci-gitops-provider-prod22"
+  pool_id          = "github-ci-gitops-pool-prod22"
   oidc_issuer      = "https://token.actions.githubusercontent.com"
 
   attribute_condition = "attribute.repository.startsWith('guicrocetti/')"
@@ -23,5 +23,5 @@ inputs = {
 
   pool_display_name          = "Github Workload Identity Pool"
   pool_description           = "Identity Pool for Github"
-  pool_providrr_display_name = "GitHub Provider"
+  pool_provider_display_name = "GitHub Provider"
 }

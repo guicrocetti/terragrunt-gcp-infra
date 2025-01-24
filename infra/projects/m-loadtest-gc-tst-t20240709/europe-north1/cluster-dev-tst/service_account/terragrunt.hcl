@@ -12,11 +12,10 @@ terraform {
 }
 
 locals {
-  account_vars     = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
 }
 
 inputs = {
-  name = "argocd-sa-adm"
   display_name = "ArgoCD service account by terragrunt"
   description  = "ArgoCD service account by terragrunt"
 }
