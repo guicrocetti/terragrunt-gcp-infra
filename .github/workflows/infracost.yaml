@@ -4,28 +4,28 @@
 name: Infracost
 
 on:
+  workflow_dispatch:
   pull_request:
-    types: [opened, synchronize, closed]
     paths:
       - "infra/**"
       - "!infra/_envcommon/**"
       - "!infra/example/**"
-  push:
+    branches: [main, test, dev]
+  pull_request_target:
     paths:
       - "infra/**"
       - "!infra/_envcommon/**"
       - "!infra/example/**"
-    branches:
-      - main
-      - test
-      - dev
+    types: [closed]
+    branches: [main, test, dev]
 
 env:
   working_dir: "infra/projects"
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   INFRACOST_CURRENCY: EUR
   INFRACOST_CURRENCY_FORMAT: "EUR: 1.234,56€"
-  tg_version: "0.67.16"
+  tg_version: "0.71.2"
+  tf_version: "1.10.3"
   TF_VAR_github_modules_url: ${{ vars.MODULES_URL }}
   WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
 
@@ -90,6 +90,10 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
         run: gcloud info
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.tf_version }}
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
@@ -160,6 +164,10 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
         run: gcloud info
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.tf_version }}
       - name: Setup Terragrunt
         uses: eLco/setup-terragrunt@v1.0.3
         with:
