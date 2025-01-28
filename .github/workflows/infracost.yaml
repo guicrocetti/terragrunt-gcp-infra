@@ -18,7 +18,6 @@ on:
       - "!infra/example/**"
     types: [closed]
     branches: [main, test, dev]
-  workflow_dispatch:
 
 env:
   working_dir: "infra/projects"
