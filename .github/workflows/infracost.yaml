@@ -200,7 +200,7 @@ jobs:
   infracost-pull-request-status-update:
     needs: [determine_environment]
     name: Infracost PR Status Update
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     environment: ${{ needs.determine_environment.outputs.environment }}
     runs-on: ubuntu-latest
     steps:
