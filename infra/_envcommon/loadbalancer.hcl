@@ -23,8 +23,8 @@ locals {
 inputs = {
   lb_name = "${local.env_vars.locals.cluster_name}-${local.region_vars.locals.region}-lb"
 
-  label = {
-    Service     = "loadbalancer"
-    Environment = local.version
+  labels = {
+    service     = local.env_vars.locals.cluster_name
+    environment = local.version
   }
 }
