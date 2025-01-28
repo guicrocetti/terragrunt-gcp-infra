@@ -24,4 +24,8 @@ inputs = {
   machine_type         = "n1-standard-4"
   network_self_link    = ""
   subnetwork_self_link = ""
+  labels = {
+    Service     = local.env_vars.locals.cluster_name
+    Environment = local.version
+  }
 }

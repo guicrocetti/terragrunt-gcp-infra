@@ -15,6 +15,8 @@ terraform {
 
 inputs = {
   secret_name = "repo-password"
-  label       = "argo_repo_password"
+  labels = {
+    label = "argo-repo-password"
+  }
   SECRET_DATA = get_env("TF_VAR_ARGOCD_GITHUB_TOKEN")
 }
