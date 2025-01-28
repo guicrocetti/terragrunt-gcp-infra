@@ -25,7 +25,10 @@ locals {
 # environments.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  label           = "cluster_secret_data"
+  labels = {
+    Environment = local.environment,
+    Service     = local.cluster,
+  }
   secret_name     = "${local.project_id}-${local.cluster}-${local.environment}"
   SECRET_DATA     = ""
   cluster_ca_data = ""

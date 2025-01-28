@@ -34,6 +34,4 @@ inputs = {
     "sa_name"       = dependency.service_account.outputs.sa_name,
   })
   secret_name = "github-ci-credentials"
-  label       = "github-ci-credentials"
-
 }
