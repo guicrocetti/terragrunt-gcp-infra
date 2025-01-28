@@ -20,6 +20,7 @@ dependency "service_account" {
 
 inputs = {
   # All configurations here will have precedence over the default
+  node_label            = "argocd-cluster-tst"
   node_count            = 2
   deletion_protection   = false
   machine_type          = "n1-standard-4"
