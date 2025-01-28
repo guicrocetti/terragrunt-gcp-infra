@@ -90,6 +90,9 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
         run: gcloud info
+      - name: Configure Git Token for Private Modules
+        run: |
+          git config --global url."https://${{ secrets.PERSONAL_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -164,6 +167,9 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
         run: gcloud info
+      - name: Configure Git Token for Private Modules
+        run: |
+          git config --global url."https://${{ secrets.PERSONAL_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
