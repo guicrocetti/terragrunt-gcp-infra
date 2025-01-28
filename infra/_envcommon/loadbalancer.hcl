@@ -24,7 +24,7 @@ inputs = {
   lb_name = "${local.env_vars.locals.cluster_name}-${local.region_vars.locals.region}-lb"
 
   labels = {
-    Service     = local.env_vars.locals.cluster_name
-    Environment = local.version
+    service     = local.env_vars.locals.cluster_name
+    environment = local.version
   }
 }

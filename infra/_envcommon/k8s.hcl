@@ -25,7 +25,7 @@ inputs = {
   network_self_link    = ""
   subnetwork_self_link = ""
   labels = {
-    Service     = local.env_vars.locals.cluster_name
-    Environment = local.version
+    service     = local.env_vars.locals.cluster_name
+    environment = local.version
   }
 }
