@@ -24,5 +24,5 @@ inputs = {
   deletion_protection   = false
   machine_type          = "n1-standard-4"
   service_account_email = dependency.service_account.outputs.sa_email
-  cluster_name          = "in-cluster"
+  cluster_name          = "argocd-mgmt-prod"
 }
