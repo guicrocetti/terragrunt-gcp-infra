@@ -39,6 +39,7 @@ dependency "service_account" {
 inputs = {
   cluster_endpoint       = dependency.k8s.outputs.cluster_server
   cluster_ca_certificate = dependency.k8s.outputs.cluster_ca_data
+  cluster_name           = dependency.k8s.outputs.cluster_name
   repo_name              = "argocd-cloud-infra-test"
   repo_username          = "guicrocetti"
   environment            = "main"
