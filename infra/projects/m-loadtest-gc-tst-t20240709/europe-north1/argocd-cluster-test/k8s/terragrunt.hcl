@@ -25,4 +25,5 @@ inputs = {
   machine_type          = "n1-standard-4"
   service_account_email = dependency.service_account.outputs.sa_email
   cluster_name          = "argocd-mgmt-prod"
+  tag                   = "update argocd terraform module PR#54"
 }
