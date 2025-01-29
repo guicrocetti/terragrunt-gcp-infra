@@ -47,4 +47,5 @@ inputs = {
   k8s_es_sva_name        = "gcpsm-secret"
   k8s_es_sva_namespace   = "external-secrets"
   service_account_email  = dependency.service_account.outputs.sa_email
+  tag                    = "update argocd terraform module PR#54"
 }
