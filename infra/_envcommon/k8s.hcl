@@ -20,10 +20,8 @@ locals {
 # environments.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  node_count           = 3
-  machine_type         = "n1-standard-4"
-  network_self_link    = ""
-  subnetwork_self_link = ""
+  node_count   = 3
+  machine_type = "n2-standard-4"
   labels = {
     service     = local.env_vars.locals.cluster_name
     environment = local.version

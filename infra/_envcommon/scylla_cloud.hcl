@@ -22,5 +22,5 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
   name         = "${local.env_vars.locals.cluster_name}-scylla"
-  scylla_token = get_env("cloudamqp_apikey", "")
+  scylla_token = get_env("TF_VAR_scylla_token", "")
 }

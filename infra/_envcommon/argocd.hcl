@@ -21,5 +21,5 @@ locals {
 # environments.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  argocd_repo_token = get_env("TF_VAR_github_argocd_token", "")
+  argocd_repo_token = get_env("TF_VAR_ARGOCD_GITHUB_TOKEN", "")
 }

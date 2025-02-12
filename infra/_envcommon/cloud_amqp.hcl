@@ -22,7 +22,10 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
   cloudamqp_instance_name = "${local.env_vars.locals.cluster_name}-cloudamqp"
-  cloudamqp_plan          = "lemur"
+  cloudamqp_plan          = "lemur" # "This is the free, smallest instance available. It is not suitable for production environments. Please, make sure you override this setting."
   cloudamqp_apikey        = get_env("TF_VAR_cloudamqp_apikey", "")
-  // vpc_id                  = 132 # WE NEED TO UNDERSTAND HOW WORK WITH THIS, USE DEFAULT VPC ID CREATED IN CLOUD AMQP ENVIRONMENT OR CREATE A NEW VPC ID FOR FOR EVERY TIME?
+  keep_associated_vpc     = false           # To keep the managed VPC when deleting the instance, set attribute keep_associated_vpc to true
+  vpc_id                  = ""              # If you want to use an existing CloudAMQP VPC, specify its VPC ID in your terragrunt.hcl file. If you don't set a VPC ID, a new VPC will be created automatically.
+  subnet                  = "10.56.72.0/24" # If you don't set a VPC ID, you must specify a subnet for the new VPC.
+  tags                    = ["terragrunt", "${local.env_vars.locals.cluster_name}"]
 }
