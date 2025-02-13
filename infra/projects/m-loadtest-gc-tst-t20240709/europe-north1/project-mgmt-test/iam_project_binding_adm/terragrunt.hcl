@@ -38,4 +38,9 @@ inputs = {
     "roles/iam.workloadIdentityPoolAdmin"
   ]
   members = ["serviceAccount:${dependency.service_account.outputs.sa_email}"]
+  condition = {
+    title       = "restrict_by_tag"
+    description = "Allow access only if tag 'environment' is 'test"
+    expression  = " resource.matchTag(' environment ', ' test ') "
+  }
 }

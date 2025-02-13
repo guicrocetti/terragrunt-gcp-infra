@@ -18,6 +18,13 @@ dependency "service_account" {
   }
 }
 
+dependency "vpc_default" {
+  config_path = find_in_parent_folders("vpc_default")
+  mock_outputs = {
+    ip_cidr_range = "10.10.0.0/16"
+  }
+}
+
 inputs = {
   # All configurations here will have precedence over the default
   node_label            = "devops-test-wrkld-0"
@@ -26,4 +33,5 @@ inputs = {
   machine_type          = "n1-standard-4"
   service_account_email = dependency.service_account.outputs.sa_email
   cluster_name          = "devops-test-wrkld-0"
+  ip_cidr_range         = dependency.vpc_default.outputs.ip_cidr_range
 }
